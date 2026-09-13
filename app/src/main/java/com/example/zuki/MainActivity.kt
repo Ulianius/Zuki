@@ -318,7 +318,6 @@ fun PlayerFormScreen() {
             Text("Зарегистрировать")
         }
 
-        // Результат
         player?.let { p ->
             Text(
                 buildString {
