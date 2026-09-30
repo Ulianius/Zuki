@@ -172,7 +172,7 @@ fun PlayerFormScreen() {
         Slider(
             value = difficulty,
             onValueChange = { difficulty = it },
-            valueRange = 0f..10f,
+            valueRange = 1f..10f,
             steps = 9,
             colors = SliderDefaults.colors(
                 thumbColor         = PinkMain,
