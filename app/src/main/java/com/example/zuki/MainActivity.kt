@@ -17,6 +17,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.util.Calendar
 import java.util.Locale
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.background
 
 
 private val PinkMain  = Color(0xFFEC6A9C)
@@ -172,7 +179,7 @@ fun PlayerFormScreen() {
         Slider(
             value = difficulty,
             onValueChange = { difficulty = it },
-            valueRange = 1f..10f,
+            valueRange = 0f..10f,
             steps = 9,
             colors = SliderDefaults.colors(
                 thumbColor         = PinkMain,
@@ -319,16 +326,50 @@ fun PlayerFormScreen() {
         }
 
         player?.let { p ->
-            Text(
-                buildString {
-                    appendLine("ФИО: ${p.fullName}")
-                    appendLine("Пол: ${p.gender}")
-                    appendLine("Курс: ${p.course}")
-                    appendLine("Уровень сложности: ${p.difficulty}")
-                    appendLine("Дата рождения: ${p.birthDate}")
-                    appendLine("Знак зодиака: ${p.zodiac}")
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 1. Информация о пользователе (сразу под кнопкой)
+                Text(
+                    text = "Информация о пользователе",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = PinkMain
+                )
+
+                Text(
+                    buildString {
+                        appendLine("ФИО: ${p.fullName}")
+                        appendLine("Пол: ${p.gender}")
+                        appendLine("Курс: ${p.course}")
+                        appendLine("Уровень сложности: ${p.difficulty}")
+                        appendLine("Дата рождения: ${p.birthDate}")
+                    }
+                )
+
+                // 2. Знак зодиака (название + картинка) — в самом низу
+                Text(
+                    text = p.zodiac,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = PinkMain
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                        .background(PinkLight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = getZodiacIcon(p.zodiac)),
+                        contentDescription = p.zodiac,
+                        modifier = Modifier.size(110.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
-            )
+            }
         }
     }
 }
@@ -347,4 +388,20 @@ private fun getZodiacSign(day: Int, month: Int): String = when (month) {
     11 -> if (day <= 21) "Скорпион" else "Стрелец"
     12 -> if (day <= 21) "Стрелец" else "Козерог"
     else -> "Неизвестно"
+}
+@DrawableRes
+fun getZodiacIcon(zodiac: String): Int = when (zodiac) {
+    "Овен"     -> R.drawable.zodiac_1
+    "Телец"    -> R.drawable.zodiac_2
+    "Близнецы" -> R.drawable.zodiac_3
+    "Рак"      -> R.drawable.zodiac_4
+    "Лев"      -> R.drawable.zodiac_5
+    "Дева"     -> R.drawable.zodiac_6
+    "Весы"     -> R.drawable.zodiac_7
+    "Скорпион" -> R.drawable.zodiac_8
+    "Стрелец"  -> R.drawable.zodiac_9
+    "Козерог"  -> R.drawable.zodiac_10
+    "Водолей"  -> R.drawable.zodiac_11
+    "Рыбы"     -> R.drawable.zodiac_12
+    else       -> R.drawable.zodiac_1 // запасной вариант
 }
