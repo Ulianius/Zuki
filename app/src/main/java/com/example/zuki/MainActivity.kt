@@ -38,7 +38,8 @@ enum class Screen {
     Menu,
     Register,
     Difficulty,
-    Authors
+    Authors,
+    Rules
 }
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,11 +61,13 @@ fun Tabs(){
         Screen.Menu -> MenuScreen(
             onRegister   = { screen = Screen.Register },
             onDifficulty = { screen = Screen.Difficulty },
-            onAuthors    = { screen = Screen.Authors }
+            onAuthors    = { screen = Screen.Authors },
+            onRules     = {screen = Screen.Rules}
         )
         Screen.Register   -> PlayerFormScreen(onBack = { screen = Screen.Menu })
         Screen.Difficulty -> PlayerFormScreen(onBack = { screen = Screen.Menu })
-        Screen.Authors    -> PlayerFormScreen(onBack    = { screen = Screen.Menu })
+        Screen.Rules      -> RulesScreen(onBack      = { screen = Screen.Menu })
+        Screen.Authors    -> AuthorsScreen(onBack    = { screen = Screen.Menu })
     }
 }
 
@@ -81,7 +84,8 @@ private fun navItemColors() = NavigationBarItemDefaults.colors(
 fun MenuScreen(
     onRegister: () -> Unit,
     onDifficulty: () -> Unit,
-    onAuthors: () -> Unit
+    onAuthors: () -> Unit,
+    onRules: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -118,7 +122,7 @@ fun MenuScreen(
         )
 
         Text(
-            text = "При поддержки общежития №4 СибГУТИ",
+            text = "При поддержке общежития №4 СибГУТИ",
             style = MaterialTheme.typography.bodyLarge,
             color = PinkDark,
             textAlign = TextAlign.Center
@@ -128,9 +132,12 @@ fun MenuScreen(
 
         MenuButton("Регистрация", onRegister)
         Spacer(modifier = Modifier.height(12.dp))
-        MenuButton("Сложность", onDifficulty)
+        MenuButton("Настройка игры", onDifficulty)
+        Spacer(modifier = Modifier.height(12.dp))
+        MenuButton("Правила игры", onRules)
         Spacer(modifier = Modifier.height(12.dp))
         MenuButton("Авторы", onAuthors)
+
     }
 }
 
