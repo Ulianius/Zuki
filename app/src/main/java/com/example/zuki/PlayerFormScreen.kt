@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 
 @DrawableRes
@@ -68,7 +69,7 @@ private fun filterNameInput(input: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerFormScreen() {
+fun PlayerFormScreen(onBack: () -> Unit) {
     var fullName by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("Мужской") }
     var course by remember { mutableStateOf("1 курс") }
@@ -397,5 +398,22 @@ fun PlayerFormScreen() {
                 }
             }
         }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = onBack,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PinkDark,
+                contentColor   = Color.White
+            ),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text("← Назад в меню", style = MaterialTheme.typography.titleLarge)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
