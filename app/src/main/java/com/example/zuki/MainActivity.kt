@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,7 +20,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
+
+
+// ============================================================
+//  ЦВЕТА
+// ============================================================
 
 val PinkMain  = Color(0xFFEC6A9C)
 val PinkDark  = Color(0xFFC94F7C)
@@ -26,19 +34,17 @@ val PinkLight = Color(0xFFF8C8DC)
 val PinkText  = Color(0xFFFFFFFF)
 
 
+// ============================================================
+//  КОНСТАНТЫ
+// ============================================================
 
 const val MIN_YEAR = 1926
 const val MAX_YEAR = 2026
 
 
-enum class Screen {
-    Menu,
-    Register,
-    Settings,
-    Rules,
-    Authors
-}
-
+// ============================================================
+//  ACTIVITY
+// ============================================================
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +52,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    Tabs()
+                    ZukiApp()
                 }
             }
         }
@@ -54,23 +60,98 @@ class MainActivity : ComponentActivity() {
 }
 
 
+// ============================================================
+//  КОРНЕВОЙ КОМПОНЕНТ: МЕНЮ + НИЖНЯЯ ПАНЕЛЬ + СВАЙПЫ
+// ============================================================
+
 @Composable
-fun Tabs() {
-    var screen by remember { mutableStateOf(Screen.Menu) }
-    when (screen) {
-        Screen.Menu -> MenuScreen(
-            onRegister = { screen = Screen.Register },
-            onSettings = { screen = Screen.Settings },
-            onRules    = { screen = Screen.Rules },
-            onAuthors  = { screen = Screen.Authors }
-        )
-        Screen.Register -> PlayerFormScreen(onBack = { screen = Screen.Menu })
-        Screen.Settings -> SettingsScreen(onBack   = { screen = Screen.Menu })
-        Screen.Rules    -> RulesScreen(onBack      = { screen = Screen.Menu })
-        Screen.Authors  -> AuthorsScreen(onBack    = { screen = Screen.Menu })
+fun ZukiApp() {
+
+    // 5 вкладок: 0 — Меню, 1 — Регистрация, 2 — Настройки, 3 — Правила, 4 — Авторы
+    val tabTitles = listOf("Меню", "Регистрация", "Настройки", "Правила", "Авторы")
+    val tabIcons  = listOf(R.drawable.icon_home, R.drawable.icon_document, R.drawable.icon_settings, R.drawable.icon_book, R.drawable.icon_user)
+
+    val pagerState = rememberPagerState(pageCount = { tabTitles.size })
+    val scope = rememberCoroutineScope()
+
+    // Функция для переключения вкладки с любой точки приложения
+    val goToPage: (Int) -> Unit = { index ->
+        scope.launch { pagerState.animateScrollToPage(index) }
+    }
+
+    Scaffold(
+
+        // ============================================================
+        //  НИЖНЯЯ ПАНЕЛЬ (bottomBar)
+        // ============================================================
+        bottomBar = {
+            // Нижнюю панель показываем только на вкладках, кроме «Меню» (страница 0)
+            if (pagerState.currentPage != 0) {
+                NavigationBar(containerColor = PinkLight) {
+                    tabTitles.forEachIndexed { index, title ->
+                        NavigationBarItem(
+                            selected = pagerState.currentPage == index,
+                            onClick = { goToPage(index) },
+                            icon = {  Image(
+                                painter = painterResource(id = tabIcons[index]),
+                                contentDescription = title,
+                                modifier = Modifier.size(24.dp)
+                            ) },
+                            label = { Text(title, style = MaterialTheme.typography.labelMedium) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor   = PinkDark,
+                                selectedTextColor   = PinkDark,
+                                indicatorColor      = PinkMain,
+                                unselectedIconColor = PinkMain,
+                                unselectedTextColor = PinkMain
+                            )
+                        )
+                    }
+                }
+            }
+        },
+        // ============================================================
+        //  КОНЕЦ БЛОКА НИЖНЕЙ ПАНЕЛИ
+        // ============================================================
+
+    ) { innerPadding ->
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) { page ->
+            when (page) {
+
+                // 0 — Главное меню
+                0 -> MenuScreen(
+                    onRegister = { goToPage(1) },
+                    onSettings = { goToPage(2) },
+                    onRules    = { goToPage(3) },
+                    onAuthors  = { goToPage(4) }
+                )
+
+                // 1 — Регистрация
+                1 -> PlayerFormScreen(onBack = { goToPage(0) })
+
+                // 2 — Настройки
+                2 -> SettingsScreen(onBack = { goToPage(0) })
+
+                // 3 — Правила
+                3 -> RulesScreen(onBack = { goToPage(0) })
+
+                // 4 — Авторы
+                4 -> AuthorsScreen(onBack = { goToPage(0) })
+            }
+        }
     }
 }
 
+
+// ============================================================
+//  ГЛАВНОЕ МЕНЮ (первая вкладка)
+// ============================================================
 
 @Composable
 fun MenuScreen(
