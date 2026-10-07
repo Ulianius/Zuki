@@ -24,9 +24,7 @@ import java.util.Calendar
 import java.util.Locale
 
 
-// ============================================================
-//  ЗОДИАК: ЗНАК → РЕСУРС
-// ============================================================
+
 
 @DrawableRes
 fun getZodiacIcon(zodiac: String): Int = when (zodiac) {
@@ -46,10 +44,6 @@ fun getZodiacIcon(zodiac: String): Int = when (zodiac) {
 }
 
 
-// ============================================================
-//  ЗОДИАК: ДАТА → ЗНАК
-// ============================================================
-
 private fun getZodiacSign(day: Int, month: Int): String = when (month) {
     1  -> if (day <= 19) "Козерог"  else "Водолей"
     2  -> if (day <= 18) "Водолей"  else "Рыбы"
@@ -66,11 +60,6 @@ private fun getZodiacSign(day: Int, month: Int): String = when (month) {
     else -> "Неизвестно"
 }
 
-
-// ============================================================
-//  ФИЛЬТР ВВОДА ФИО
-// ============================================================
-
 private fun filterNameInput(input: String): String {
     val allowed = input.filter { ch ->
         ch.isLetter() || ch == ' ' || ch == '-'
@@ -78,10 +67,6 @@ private fun filterNameInput(input: String): String {
     return allowed.replace(Regex("\\s+"), " ")
 }
 
-
-// ============================================================
-//  ЭКРАН "РЕГИСТРАЦИЯ"
-// ============================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,11 +110,6 @@ fun PlayerFormScreen(onBack: () -> Unit) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Регистрация игрока", color = Color.White) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад", color = Color.White, fontSize = 20.sp)
-                    }
-                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = PinkMain
                 )
@@ -146,8 +126,6 @@ fun PlayerFormScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
-
-            // ---------- ФИО ----------
             OutlinedTextField(
                 value = fullName,
                 onValueChange = { input ->
@@ -164,7 +142,6 @@ fun PlayerFormScreen(onBack: () -> Unit) {
             )
             nameError?.let { Text(it, color = Color.Red) }
 
-            // ---------- Пол ----------
             Text("Пол")
             Row(verticalAlignment = Alignment.CenterVertically) {
                 listOf("Мужской", "Женский").forEach { option ->
@@ -214,7 +191,7 @@ fun PlayerFormScreen(onBack: () -> Unit) {
                 }
             }
 
-            // ---------- Сложность ----------
+
             Text("Уровень сложности: ${difficulty.toInt()}")
             Slider(
                 value = difficulty,
@@ -230,7 +207,7 @@ fun PlayerFormScreen(onBack: () -> Unit) {
                 )
             )
 
-            // ---------- Дата ----------
+
             Text("Дата рождения")
             Row(
                 modifier = Modifier.fillMaxWidth(),

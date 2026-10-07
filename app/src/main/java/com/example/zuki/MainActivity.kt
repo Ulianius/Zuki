@@ -22,29 +22,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
-
-
-// ============================================================
-//  ЦВЕТА
-// ============================================================
-
 val PinkMain  = Color(0xFFEC6A9C)
 val PinkDark  = Color(0xFFC94F7C)
 val PinkLight = Color(0xFFF8C8DC)
 val PinkText  = Color(0xFFFFFFFF)
 
-
-// ============================================================
-//  КОНСТАНТЫ
-// ============================================================
-
 const val MIN_YEAR = 1926
 const val MAX_YEAR = 2026
 
 
-// ============================================================
-//  ACTIVITY
-// ============================================================
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,14 +46,9 @@ class MainActivity : ComponentActivity() {
 }
 
 
-// ============================================================
-//  КОРНЕВОЙ КОМПОНЕНТ: МЕНЮ + НИЖНЯЯ ПАНЕЛЬ + СВАЙПЫ
-// ============================================================
-
 @Composable
 fun ZukiApp() {
 
-    // 5 вкладок: 0 — Меню, 1 — Регистрация, 2 — Настройки, 3 — Правила, 4 — Авторы
     val tabTitles = listOf("Меню", "Регистрация", "Настройки", "Правила", "Авторы")
     val tabIcons  = listOf(R.drawable.icon_home, R.drawable.icon_document, R.drawable.icon_settings, R.drawable.icon_book, R.drawable.icon_user)
 
@@ -81,11 +62,9 @@ fun ZukiApp() {
 
     Scaffold(
 
-        // ============================================================
-        //  НИЖНЯЯ ПАНЕЛЬ (bottomBar)
-        // ============================================================
+
         bottomBar = {
-            // Нижнюю панель показываем только на вкладках, кроме «Меню» (страница 0)
+            // Нижнюю панель показывается кроме «Меню» (страница 0)
             if (pagerState.currentPage != 0) {
                 NavigationBar(containerColor = PinkLight) {
                     tabTitles.forEachIndexed { index, title ->
@@ -110,13 +89,10 @@ fun ZukiApp() {
                 }
             }
         },
-        // ============================================================
-        //  КОНЕЦ БЛОКА НИЖНЕЙ ПАНЕЛИ
-        // ============================================================
 
     ) { innerPadding ->
 
-        HorizontalPager(
+        HorizontalPager( //контейнер чтобы свайпать
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
@@ -124,7 +100,6 @@ fun ZukiApp() {
         ) { page ->
             when (page) {
 
-                // 0 — Главное меню
                 0 -> MenuScreen(
                     onRegister = { goToPage(1) },
                     onSettings = { goToPage(2) },
@@ -132,26 +107,18 @@ fun ZukiApp() {
                     onAuthors  = { goToPage(4) }
                 )
 
-                // 1 — Регистрация
                 1 -> PlayerFormScreen(onBack = { goToPage(0) })
 
-                // 2 — Настройки
                 2 -> SettingsScreen(onBack = { goToPage(0) })
 
-                // 3 — Правила
                 3 -> RulesScreen(onBack = { goToPage(0) })
 
-                // 4 — Авторы
                 4 -> AuthorsScreen(onBack = { goToPage(0) })
             }
         }
     }
 }
 
-
-// ============================================================
-//  ГЛАВНОЕ МЕНЮ (первая вкладка)
-// ============================================================
 
 @Composable
 fun MenuScreen(

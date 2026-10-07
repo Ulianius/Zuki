@@ -27,11 +27,6 @@ fun AuthorsScreen(onBack: () -> Unit) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Авторы", color = Color.White, textAlign = TextAlign.Center) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text(" Назад", color = Color.White, fontSize = 20.sp )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PinkMain)
             )
         }
@@ -47,7 +42,6 @@ fun AuthorsScreen(onBack: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // -------- Аватар в круге --------
             Box(
                 modifier = Modifier
                     .size(270.dp)
@@ -72,7 +66,6 @@ fun AuthorsScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // -------- Имя --------
             Text(
                 text = "Корнеева Ульяна",
                 style = MaterialTheme.typography.headlineSmall,
@@ -80,7 +73,6 @@ fun AuthorsScreen(onBack: () -> Unit) {
                 textAlign = TextAlign.Center
             )
 
-            // -------- Группа --------
             Card(
                 colors = CardDefaults.cardColors(containerColor = PinkLight),
                 shape = RoundedCornerShape(16.dp),
@@ -97,7 +89,6 @@ fun AuthorsScreen(onBack: () -> Unit) {
                     textAlign = TextAlign.Left
                 )
 
-                // -------- Роль --------
                 Text(
                     text = "Разработчик, дизайнер",
                     style = MaterialTheme.typography.bodyLarge,
@@ -107,26 +98,10 @@ fun AuthorsScreen(onBack: () -> Unit) {
                 }
             }
 
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // -------- Нижняя подпись --------
-            Text(
-                text = "СибГУТИ · 2026",
-                style = MaterialTheme.typography.bodyLarge,
-                color = PinkDark,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
-
-// ============================================================
-//  СТРОКА "ПОДПИСЬ — ЗНАЧЕНИЕ"
-// ============================================================
 
 @Composable
 private fun InfoRow(label: String, value: String) {

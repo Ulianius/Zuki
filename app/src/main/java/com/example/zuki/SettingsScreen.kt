@@ -16,29 +16,19 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
 
-    // -------- Состояния настроек --------
 
-    /** Скорость игры: 1..10 (условные единицы) */
     var gameSpeed by remember { mutableFloatStateOf(5f) }
 
-    /** Максимум тараканов на экране: 1..30 */
     var maxRoaches by remember { mutableFloatStateOf(10f) }
 
-    /** Интервал появления бонусов: 1..30 секунд */
     var bonusInterval by remember { mutableFloatStateOf(10f) }
 
-    /** Длительность раунда: 30..300 секунд */
     var roundDuration by remember { mutableFloatStateOf(60f) }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Настройки игры", color = Color.White) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("← Назад", color = Color.White, fontSize = 20.sp)
-                    }
-                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = PinkMain
                 )
@@ -55,7 +45,7 @@ fun SettingsScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
-            // ---------- Скорость игры ----------
+
             SliderSetting(
                 title = "Скорость игры",
                 value = gameSpeed,
@@ -65,7 +55,6 @@ fun SettingsScreen(onBack: () -> Unit) {
                 valueLabel = "${gameSpeed.toInt()}"
             )
 
-            // ---------- Максимум тараканов на экране ----------
             SliderSetting(
                 title = "Максимум тараканов на экране",
                 value = maxRoaches,
@@ -75,17 +64,17 @@ fun SettingsScreen(onBack: () -> Unit) {
                 valueLabel = "${maxRoaches.toInt()}"
             )
 
-            // ---------- Интервал появления бонусов ----------
+
             SliderSetting(
                 title = "Интервал появления бонусов",
                 value = bonusInterval,
                 onValueChange = { bonusInterval = it },
                 valueRange = 1f..30f,
-                steps = 28,
+                steps = 6,
                 valueLabel = "${bonusInterval.toInt()} сек"
             )
 
-            // ---------- Длительность раунда ----------
+
             SliderSetting(
                 title = "Длительность раунда",
                 value = roundDuration,
@@ -97,7 +86,7 @@ fun SettingsScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ---------- Кнопка "Сохранить" ----------
+
             Button(
                 onClick = {
                     // Пока ничего не сохраняем — просто визуальная кнопка.
@@ -117,9 +106,6 @@ fun SettingsScreen(onBack: () -> Unit) {
 }
 
 
-// ============================================================
-//  ОДНА НАСТРОЙКА — ПОДПИСЬ + ЗНАЧЕНИЕ + ПОЛЗУНОК
-// ============================================================
 
 @Composable
 private fun SliderSetting(

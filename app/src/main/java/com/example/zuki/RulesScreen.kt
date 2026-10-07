@@ -19,11 +19,6 @@ fun RulesScreen(onBack: () -> Unit) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Правила игры", color = Color.White) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад", color = Color.White, fontSize = 20.sp)
-                    }
-                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = PinkMain
                 )
