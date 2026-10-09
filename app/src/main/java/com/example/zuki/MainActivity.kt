@@ -1,6 +1,7 @@
 package com.example.zuki
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -17,20 +18,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
+
+// ============================================================
+//  ЦВЕТА
+// ============================================================
 
 val PinkMain  = Color(0xFFEC6A9C)
 val PinkDark  = Color(0xFFC94F7C)
 val PinkLight = Color(0xFFF8C8DC)
 val PinkText  = Color(0xFFFFFFFF)
 
+
+// ============================================================
+//  КОНСТАНТЫ
+// ============================================================
+
 const val MIN_YEAR = 1926
 const val MAX_YEAR = 2026
 
 
+// ============================================================
+//  ACTIVITY
+// ============================================================
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,11 +63,30 @@ class MainActivity : ComponentActivity() {
 }
 
 
+// ============================================================
+//  КОРНЕВОЙ КОМПОНЕНТ: 5 ВКЛАДОК + НИЖНЯЯ ПАНЕЛЬ + СВАЙПЫ
+// ============================================================
+
 @Composable
 fun ZukiApp() {
+    var settings by remember { mutableStateOf(GameSettings()) }
+    var inGame   by remember { mutableStateOf(false) }
 
+    if (inGame) {
+        GameScreen(
+            settings = settings,
+            onExit   = { inGame = false }
+        )
+        return
+    }
     val tabTitles = listOf("Меню", "Регистрация", "Настройки", "Правила", "Авторы")
-    val tabIcons  = listOf(R.drawable.icon_home, R.drawable.icon_document, R.drawable.icon_settings, R.drawable.icon_book, R.drawable.icon_user)
+    val tabIcons  = listOf(
+        R.drawable.icon_home,
+        R.drawable.icon_document,
+        R.drawable.icon_settings,
+        R.drawable.icon_book,
+        R.drawable.icon_user
+    )
 
     val pagerState = rememberPagerState(pageCount = { tabTitles.size })
     val scope = rememberCoroutineScope()
@@ -60,22 +96,32 @@ fun ZukiApp() {
         scope.launch { pagerState.animateScrollToPage(index) }
     }
 
+    // ★ ТЕСТОВАЯ onPlay с Toast
+    val context = LocalContext.current
+    val onPlay: () -> Unit = {
+        inGame = true
+    }
+
     Scaffold(
 
-
+        // ============================================================
+        //  НИЖНЯЯ ПАНЕЛЬ
+        // ============================================================
         bottomBar = {
-            // Нижнюю панель показывается кроме «Меню» (страница 0)
+            // Панель показывается на всех вкладках, кроме «Меню» (страница 0)
             if (pagerState.currentPage != 0) {
                 NavigationBar(containerColor = PinkLight) {
                     tabTitles.forEachIndexed { index, title ->
                         NavigationBarItem(
                             selected = pagerState.currentPage == index,
                             onClick = { goToPage(index) },
-                            icon = {  Image(
-                                painter = painterResource(id = tabIcons[index]),
-                                contentDescription = title,
-                                modifier = Modifier.size(24.dp)
-                            ) },
+                            icon = {
+                                Image(
+                                    painter = painterResource(id = tabIcons[index]),
+                                    contentDescription = title,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
                             label = { Text(title, style = MaterialTheme.typography.labelMedium) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor   = PinkDark,
@@ -88,11 +134,11 @@ fun ZukiApp() {
                     }
                 }
             }
-        },
+        }
 
     ) { innerPadding ->
 
-        HorizontalPager( //контейнер чтобы свайпать
+        HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
@@ -101,6 +147,7 @@ fun ZukiApp() {
             when (page) {
 
                 0 -> MenuScreen(
+                    onPlay     = onPlay,
                     onRegister = { goToPage(1) },
                     onSettings = { goToPage(2) },
                     onRules    = { goToPage(3) },
@@ -108,20 +155,25 @@ fun ZukiApp() {
                 )
 
                 1 -> PlayerFormScreen(onBack = { goToPage(0) })
-
-                2 -> SettingsScreen(onBack = { goToPage(0) })
-
-                3 -> RulesScreen(onBack = { goToPage(0) })
-
-                4 -> AuthorsScreen(onBack = { goToPage(0) })
+                2 -> SettingsScreen(
+                    settings = settings,
+                    onSettingsChange = { settings = it }
+                )
+                3 -> RulesScreen(onBack      = { goToPage(0) })
+                4 -> AuthorsScreen(onBack    = { goToPage(0) })
             }
         }
     }
 }
 
 
+// ============================================================
+//  ГЛАВНОЕ МЕНЮ (первая вкладка)
+// ============================================================
+
 @Composable
 fun MenuScreen(
+    onPlay: () -> Unit,
     onRegister: () -> Unit,
     onSettings: () -> Unit,
     onRules: () -> Unit,
@@ -131,6 +183,7 @@ fun MenuScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(PinkLight)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -168,7 +221,27 @@ fun MenuScreen(
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // ---------- КНОПКА "ИГРАТЬ" — крупная, сверху ----------
+        Button(
+            onClick = onPlay,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PinkDark,
+                contentColor   = Color.White
+            ),
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+        ) {
+            Text(
+                text = "▶  Играть",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         MenuButton("Регистрация", onRegister)
         Spacer(modifier = Modifier.height(12.dp))
@@ -180,6 +253,10 @@ fun MenuScreen(
     }
 }
 
+
+// ============================================================
+//  ОБЫЧНАЯ КНОПКА МЕНЮ
+// ============================================================
 
 @Composable
 private fun MenuButton(text: String, onClick: () -> Unit) {
