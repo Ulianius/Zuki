@@ -18,8 +18,16 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.draw.clipToBounds
 import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.graphicsLayer
 
-
+private data class Splash(
+    val id: Long,
+    val x: Float,
+    val y: Float,
+    val size: Float,
+    val startTime: Long
+)
+private var splashIdCounter = 0L
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -33,6 +41,7 @@ fun GameScreen(
     var timeLeftMs by remember { mutableLongStateOf(settings.roundDurationMs) }
 
     val bugs = remember { mutableStateListOf<Bug>() }
+    val splashes = remember { mutableStateListOf<Splash>() }
     var finished by remember { mutableStateOf(false) }
 
     // ---------- ИТОГОВЫЙ ЭКРАН ----------
@@ -66,6 +75,7 @@ fun GameScreen(
                     score = 0; hits = 0; misses = 0
                     timeLeftMs = settings.roundDurationMs
                     bugs.clear(); finished = false
+                    splashes.clear()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PinkDark),
                 modifier = Modifier.fillMaxWidth().height(56.dp)
@@ -169,6 +179,13 @@ fun GameScreen(
 
                     finished = true
                 }
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(50)
+                        val now = System.currentTimeMillis()
+                        splashes.removeAll { now - it.startTime > 500L }
+                    }
+                }
 
                 Box(
                     modifier = Modifier
@@ -180,6 +197,31 @@ fun GameScreen(
                             })
                         }
                 )
+                splashes.forEach { splash ->
+                    val xDp = with(LocalDensity.current) {
+                        (splash.x * fieldW).toDp()
+                    }
+                    val yDp = with(LocalDensity.current) {
+                        (splash.y * fieldH).toDp()
+                    }
+                    val sizeDp = with(LocalDensity.current) {
+                        (splash.size * minOf(fieldW, fieldH)).toDp()
+                    }
+
+                    // плавное затухание: 0 мс — alpha=1, 500 мс — alpha=0
+                    val elapsed = System.currentTimeMillis() - splash.startTime
+                    val alpha = (1f - elapsed / 500f).coerceIn(0f, 1f)
+
+                    Image(
+                        painter = painterResource(id = R.drawable.smert),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .offset(x = xDp, y = yDp)
+                            .size(sizeDp)
+                            .graphicsLayer(alpha = alpha)
+                    )
+                }
 
 
                 bugs.forEach { bug ->
@@ -198,9 +240,21 @@ fun GameScreen(
                             .size(sizeDp)
                             .pointerInput(bug.id) {
                                 detectTapGestures(onTap = {
+
                                     score += 10
                                     hits++
-                                    bugs.remove(bug)
+
+                                    splashes.add(
+                                        Splash(
+                                            id        = splashIdCounter++,
+                                            x         = bug.x,
+                                            y         = bug.y,
+                                            size      = bug.size * 1.6f,
+                                            startTime = System.currentTimeMillis()
+                                        )
+                                    )
+
+                                    bugs.removeAll { it.id == bug.id }
                                 })
                             }
                     )
