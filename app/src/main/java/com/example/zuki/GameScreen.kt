@@ -11,9 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.draw.clipToBounds
@@ -41,6 +46,7 @@ fun GameScreen(
     var hits   by remember { mutableIntStateOf(0) }
     var misses by remember { mutableIntStateOf(0) }
     var timeLeftMs by remember { mutableLongStateOf(settings.roundDurationMs) }
+    var roundNumber by remember { mutableIntStateOf(0) }
 
     val bugs = remember { mutableStateListOf<Bug>() }
     val splashes = remember { mutableStateListOf<Splash>() }
@@ -51,49 +57,131 @@ fun GameScreen(
         val accuracy = if (hits + misses == 0) 0
         else (hits.toFloat() / (hits + misses) * 100).roundToInt()
 
-        Column(
+        val heroImage: Int = remember(roundNumber, accuracy) {
+            val heroIndex = roundNumber % 3                  // 0, 1, 2 по кругу
+            val isAngry   = accuracy < 30                    // < 30% — агрессивный
+
+            when (heroIndex) {
+                0 -> if (isAngry) R.drawable.hero_1_sad else R.drawable.hero_1_happy
+                1 -> if (isAngry) R.drawable.hero_2_sad else R.drawable.hero_2_happy
+                else -> if (isAngry) R.drawable.hero_3_sad else R.drawable.hero_3_happy
+            }
+        }
+        val quote = when {
+            accuracy >= 80 -> "Отличная работа! Так держать!"
+            accuracy >= 50 -> "Неплохо. Можешь ещё лучше!"
+            accuracy >= 30 -> "Так себе. Подтянись!"
+            else           -> "Это провал. Соберись!"
+        }
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(PinkLight)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            Text("Раунд завершён!",
-                style = MaterialTheme.typography.headlineMedium,
-                color = PinkMain)
+            val heroOffsetX = if (heroImage == R.drawable.hero_3_happy ||
+                heroImage == R.drawable.hero_3_sad) (-10).dp else (-40).dp
+            Image(
+                painter = painterResource(id = heroImage),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.95f)           // 85% ширины
+                    .graphicsLayer(
+                        scaleX = if (heroImage == R.drawable.hero_3_happy ||
+                            heroImage == R.drawable.hero_3_sad) 3f else 1f,
+                        scaleY = if (heroImage == R.drawable.hero_3_happy ||
+                            heroImage == R.drawable.hero_3_sad) 3f else 1f
 
-            Spacer(Modifier.height(24.dp))
+                    )
+                    .offset(x = heroOffsetX)
+                    .align(Alignment.BottomStart)      // внизу слева — как на макете
+            )
 
-            Text("Очки: $score", style = MaterialTheme.typography.titleLarge, color = PinkDark)
-            Text("Попадания: $hits", style = MaterialTheme.typography.titleLarge, color = PinkDark)
-            Text("Промахи: $misses", style = MaterialTheme.typography.titleLarge, color = PinkDark)
-            Text("Точность: $accuracy %", style = MaterialTheme.typography.titleLarge, color = PinkDark)
-
-            Spacer(Modifier.height(32.dp))
-
-            Button(
-                onClick = {
-                    score = 0; hits = 0; misses = 0
-                    timeLeftMs = settings.roundDurationMs
-                    bugs.clear(); finished = false
-                    splashes.clear()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = PinkDark),
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+            // ---------- КАРТОЧКИ И КНОПКИ: справа, ПОВЕРХ персонажа ----------
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .offset(y = 80.dp)
+                    .fillMaxWidth(0.55f)               // 55% ширины — перекрытие с картинкой
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = 24.dp,
+                        bottom = 24.dp,
+                        end = 16.dp
+                    ),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Играть снова", color = Color.White,
-                    style = MaterialTheme.typography.titleLarge)
-            }
 
-            Spacer(Modifier.height(12.dp))
+                // ---- Цитата ----
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.9f)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = quote,
+                        color = PinkMain,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
 
-            OutlinedButton(
-                onClick = onExit,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) {
-                Text("В меню", color = PinkMain,
-                    style = MaterialTheme.typography.titleLarge)
+                // ---- Статистика ----
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.9f)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("Очки: $score", color = PinkMain,
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Промахи: $misses", color = PinkMain,
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Попадания: $hits", color = PinkMain,
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Точность: $accuracy %", color = PinkMain,
+                            style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+
+                // ---- Кнопка "Играть снова" ----
+                Button(
+                    onClick = {
+                        score = 0; hits = 0; misses = 0
+                        timeLeftMs = settings.roundDurationMs
+                        bugs.clear(); finished = false
+                        splashes.clear()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PinkDark,
+                        contentColor   = Color.White
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Играть снова", style = MaterialTheme.typography.titleLarge)
+                }
+
+                // ---- Кнопка "В меню" ----
+                Button(
+                    onClick = onExit,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PinkMain.copy(alpha = 0.6f),
+                        contentColor   = Color.White
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("В меню", style = MaterialTheme.typography.titleLarge)
+                }
             }
         }
         return
@@ -103,7 +191,7 @@ fun GameScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Игра", color = Color.White) },
+                title = { },
                 navigationIcon = {
                     TextButton(onClick = onExit) {
                         Text("← Выйти", color = Color.White, fontSize = 20.sp)
@@ -179,6 +267,7 @@ fun GameScreen(
                         }
                     }
 
+                    roundNumber++
                     finished = true
                 }
                 LaunchedEffect(Unit) {
