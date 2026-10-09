@@ -14,16 +14,9 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(settings: GameSettings,
+                   onSettingsChange: (GameSettings) -> Unit) {
 
-
-    var gameSpeed by remember { mutableFloatStateOf(5f) }
-
-    var maxRoaches by remember { mutableFloatStateOf(10f) }
-
-    var bonusInterval by remember { mutableFloatStateOf(10f) }
-
-    var roundDuration by remember { mutableFloatStateOf(60f) }
 
     Scaffold(
         topBar = {
@@ -48,40 +41,48 @@ fun SettingsScreen(onBack: () -> Unit) {
 
             SliderSetting(
                 title = "Скорость игры",
-                value = gameSpeed,
-                onValueChange = { gameSpeed = it },
+                value = settings.speed.toFloat(),
+                onValueChange = {
+                    onSettingsChange(settings.copy(speed = it.toInt()))
+                },
                 valueRange = 1f..10f,
                 steps = 8,                      // 10 позиций: 1,2,...,10
-                valueLabel = "${gameSpeed.toInt()}"
+                valueLabel = "${settings.speed}"
             )
 
             SliderSetting(
                 title = "Максимум тараканов на экране",
-                value = maxRoaches,
-                onValueChange = { maxRoaches = it },
+                value = settings.maxRoaches.toFloat(),
+                onValueChange = {
+                    onSettingsChange(settings.copy(maxRoaches = it.toInt()))
+                },
                 valueRange = 1f..50f,
                 steps = 10,                     // 30 позиций: 1..30
-                valueLabel = "${maxRoaches.toInt()}"
+                valueLabel = "${settings.maxRoaches}"
             )
 
 
             SliderSetting(
                 title = "Интервал появления бонусов",
-                value = bonusInterval,
-                onValueChange = { bonusInterval = it },
+                value = settings.bonusIntervalSec.toFloat(),
+                onValueChange = {
+                    onSettingsChange(settings.copy(bonusIntervalSec = it.toInt()))
+                },
                 valueRange = 1f..30f,
                 steps = 6,
-                valueLabel = "${bonusInterval.toInt()} сек"
+                valueLabel = "${settings.bonusIntervalSec} сек"
             )
 
 
             SliderSetting(
                 title = "Длительность раунда",
-                value = roundDuration,
-                onValueChange = { roundDuration = it },
+                value = settings.roundDurationSec.toFloat(),
+                onValueChange = {
+                    onSettingsChange(settings.copy(roundDurationSec = it.toInt()))
+                },
                 valueRange = 30f..180f,
-                steps = 6,                     // шаг 10 сек
-                valueLabel = "${roundDuration.toInt()} сек"
+                steps = 6,
+                valueLabel = "${settings.roundDurationSec} сек"
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -89,7 +90,6 @@ fun SettingsScreen(onBack: () -> Unit) {
 
             Button(
                 onClick = {
-                    // Пока ничего не сохраняем — просто визуальная кнопка.
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PinkMain,
