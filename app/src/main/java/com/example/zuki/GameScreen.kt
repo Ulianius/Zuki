@@ -18,10 +18,12 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.draw.clipToBounds
 import kotlin.math.roundToInt
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.graphicsLayer
 
 private data class Splash(
     val id: Long,
+    @DrawableRes val splashRes: Int,
     val x: Float,
     val y: Float,
     val size: Float,
@@ -172,7 +174,7 @@ fun GameScreen(
                         spawnAcc += frame
                         if (spawnAcc >= spawnInterval &&
                             bugs.size < settings.maxRoaches) {
-                            bugs.add(BugFactory.spawn(settings.speedFactor))
+                            bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
                             spawnAcc = 0L
                         }
                     }
@@ -198,12 +200,20 @@ fun GameScreen(
                         }
                 )
                 splashes.forEach { splash ->
+
+                    val sizePx = splash.size * minOf(fieldW, fieldH)
+
+
+                    val shiftPx = -sizePx * 0.375f / 2f
+                    val shiftDp = with(LocalDensity.current) { shiftPx.toDp() }
+
                     val xDp = with(LocalDensity.current) {
                         (splash.x * fieldW).toDp()
-                    }
+                    } + shiftDp
                     val yDp = with(LocalDensity.current) {
                         (splash.y * fieldH).toDp()
-                    }
+                    } + shiftDp
+
                     val sizeDp = with(LocalDensity.current) {
                         (splash.size * minOf(fieldW, fieldH)).toDp()
                     }
@@ -213,7 +223,7 @@ fun GameScreen(
                     val alpha = (1f - elapsed / 500f).coerceIn(0f, 1f)
 
                     Image(
-                        painter = painterResource(id = R.drawable.smert),
+                        painter = painterResource(id = splash.splashRes),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
@@ -232,7 +242,7 @@ fun GameScreen(
                     }
 
                     Image(
-                        painter = painterResource(id = R.drawable.tarakan),
+                        painter = painterResource(id = bug.iconRes),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
@@ -241,12 +251,13 @@ fun GameScreen(
                             .pointerInput(bug.id) {
                                 detectTapGestures(onTap = {
 
-                                    score += 10
+                                    score += bug.points
                                     hits++
 
                                     splashes.add(
                                         Splash(
                                             id        = splashIdCounter++,
+                                            splashRes  = bug.splashRes,
                                             x         = bug.x,
                                             y         = bug.y,
                                             size      = bug.size * 1.6f,
