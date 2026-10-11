@@ -35,10 +35,12 @@ private data class Splash(
     val startTime: Long
 )
 private var splashIdCounter = 0L
+private const val BONUS_LIFETIME_MS = 3_000L           // живёт 3 секунды
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     settings: GameSettings,
+    onSettingsChange: (GameSettings) -> Unit,
     onExit: () -> Unit
 ) {
 
@@ -48,9 +50,11 @@ fun GameScreen(
     var timeLeftMs by remember { mutableLongStateOf(settings.roundDurationMs) }
     var roundNumber by remember { mutableIntStateOf(0) }
     var paused  by remember { mutableStateOf(false) }
-    var overlay by remember { mutableStateOf<String?>(null) }   // "settings" | "rules" | "authors" | null
+    var overlay by remember { mutableStateOf<String?>(null) }
+    var showSettingsConfirm by remember { mutableStateOf(false) }
 
     val bugs = remember { mutableStateListOf<Bug>() }
+    val bonuses = remember { mutableStateListOf<Bonus>() }
     val splashes = remember { mutableStateListOf<Splash>() }
     var finished by remember { mutableStateOf(false) }
 
@@ -99,7 +103,6 @@ fun GameScreen(
                     .align(Alignment.BottomStart)      // внизу слева — как на макете
             )
 
-            // ---------- КАРТОЧКИ И КНОПКИ: справа, ПОВЕРХ персонажа ----------
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -160,6 +163,8 @@ fun GameScreen(
                         timeLeftMs = settings.roundDurationMs
                         bugs.clear(); finished = false
                         splashes.clear()
+                        bonuses.clear()
+                        roundNumber++
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PinkDark,
@@ -206,10 +211,14 @@ fun GameScreen(
             NavigationBar(containerColor = PinkLight) {
                 NavigationBarItem(
                     selected = overlay == null,
-                    onClick  = { paused = false; overlay = null },
+                    onClick  = {  if (overlay == "settings") {
+                        roundNumber++
+                    }
+                        paused = false
+                        overlay = null},
                     label    = { Text("Игра") },
                     icon     = { Image(
-                        painter = painterResource(id = R.drawable.icon_game),
+                        painter = painterResource(id = R.drawable.icon_game ),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     ) },
@@ -221,7 +230,7 @@ fun GameScreen(
                 )
                 NavigationBarItem(
                     selected = overlay == "settings",
-                    onClick  = { paused = true; overlay = "settings" },
+                    onClick  = { paused = true; showSettingsConfirm = true  },
                     label    = { Text("Настройки") },
                     icon     = { Image(
                         painter = painterResource(id = R.drawable.icon_settings),
@@ -305,10 +314,12 @@ fun GameScreen(
                 val fieldH = constraints.maxHeight.toFloat()
 
 
-                LaunchedEffect(Unit) {
+                LaunchedEffect(roundNumber) {
+                    timeLeftMs = settings.roundDurationMs
                     val frame = 16L
                     var spawnAcc = 0L
                     val spawnInterval = 1000L             // новый таракан раз в секунду
+                    var bonusSpawnAcc = 0L
 
                     while (timeLeftMs > 0) {
 
@@ -338,9 +349,16 @@ fun GameScreen(
                             bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
                             spawnAcc = 0L
                         }
+                        bonusSpawnAcc += frame
+                        if (bonusSpawnAcc >= settings.bonusIntervalMs && bonuses.size < 2) {
+                            bonuses.add(BonusFactory.spawn(settings.speedFactor))
+                            bonusSpawnAcc = 0L
+                        }
+
+                        val now = System.currentTimeMillis()
+                        bonuses.removeAll { now - it.startTime > BONUS_LIFETIME_MS }
                     }
 
-                    roundNumber++
                     finished = true
                 }
                 LaunchedEffect(Unit) {
@@ -394,7 +412,32 @@ fun GameScreen(
                             .graphicsLayer(alpha = alpha)
                     )
                 }
+                // ★ Бонусы
+                bonuses.forEach { bonus ->
+                    val xDp = with(LocalDensity.current) { (bonus.x * fieldW).toDp() }
+                    val yDp = with(LocalDensity.current) { (bonus.y * fieldH).toDp() }
+                    val sizeDp = with(LocalDensity.current) {
+                        (bonus.size * minOf(fieldW, fieldH)).toDp()
+                    }
 
+                    Image(
+                        painter = painterResource(id = R.drawable.grecha),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .offset(
+                                x = xDp - sizeDp / 2f,        // центрируем монетку
+                                y = yDp - sizeDp / 2f
+                            )
+                            .size(sizeDp)
+                            .pointerInput(bonus.id) {
+                                detectTapGestures(onTap = {
+                                    score += bonus.points
+                                    bonuses.removeAll { it.id == bonus.id }
+                                })
+                            }
+                    )
+                }
 
                 bugs.forEach { bug ->
                     val xDp = with(LocalDensity.current) { (bug.x * fieldW).toDp() }
@@ -439,7 +482,7 @@ fun GameScreen(
             when (overlay) {
                 "settings" -> SettingsScreen(
                     settings = settings,
-                    onSettingsChange = { /* игнорируем, или settings = it */ }
+                    onSettingsChange = onSettingsChange
                 )
                 "rules" -> RulesScreen(
                     onBack = { overlay = null; paused = false }
@@ -448,6 +491,38 @@ fun GameScreen(
                     onBack = { overlay = null; paused = false }
                 )
             }
+        }
+        if (showSettingsConfirm) {
+            AlertDialog(
+                onDismissRequest = { showSettingsConfirm = false },
+                title = { Text("Изменить настройки?") },
+                text = {
+                    Text("Текущий раунд будет сброшен. Новый раунд начнётся заново с новыми настройками.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showSettingsConfirm = false
+                            // Сбрасываем раунд и открываем настройки
+                            score = 0
+                            hits = 0
+                            misses = 0
+                            bugs.clear()
+                            splashes.clear()
+                            finished = false
+                            overlay = "settings"
+                            bonuses.clear()
+                        }
+                    ) {
+                        Text("Да, изменить", color = PinkMain)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSettingsConfirm = false }) {
+                        Text("Отмена", color = PinkDark)
+                    }
+                }
+            )
         }
     }
 }
