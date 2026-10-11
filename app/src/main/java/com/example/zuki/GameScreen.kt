@@ -47,19 +47,20 @@ fun GameScreen(
     var misses by remember { mutableIntStateOf(0) }
     var timeLeftMs by remember { mutableLongStateOf(settings.roundDurationMs) }
     var roundNumber by remember { mutableIntStateOf(0) }
+    var paused  by remember { mutableStateOf(false) }
+    var overlay by remember { mutableStateOf<String?>(null) }   // "settings" | "rules" | "authors" | null
 
     val bugs = remember { mutableStateListOf<Bug>() }
     val splashes = remember { mutableStateListOf<Splash>() }
     var finished by remember { mutableStateOf(false) }
 
-    // ---------- ИТОГОВЫЙ ЭКРАН ----------
     if (finished) {
         val accuracy = if (hits + misses == 0) 0
         else (hits.toFloat() / (hits + misses) * 100).roundToInt()
 
         val heroImage: Int = remember(roundNumber, accuracy) {
             val heroIndex = roundNumber % 3                  // 0, 1, 2 по кругу
-            val isAngry   = accuracy < 30                    // < 30% — агрессивный
+            val isAngry   = score < 300
 
             when (heroIndex) {
                 0 -> if (isAngry) R.drawable.hero_1_sad else R.drawable.hero_1_happy
@@ -68,10 +69,10 @@ fun GameScreen(
             }
         }
         val quote = when {
-            accuracy >= 80 -> "Отличная работа! Так держать!"
-            accuracy >= 50 -> "Неплохо. Можешь ещё лучше!"
-            accuracy >= 30 -> "Так себе. Подтянись!"
-            else           -> "Это провал. Соберись!"
+            score  >= 1200 -> "Отличная работа!  Собирайся, Выселяйся"
+            score  >= 700 -> "Неплохо. Собирайся, Выселяйся"
+            score  >= 400 -> "Так себе. Собирайся, выселяйся"
+            else   -> "Это провал.Собирайся, Выселяйся"
         }
         Box(
             modifier = Modifier
@@ -200,9 +201,72 @@ fun GameScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PinkMain),
                 windowInsets = WindowInsets.statusBars
             )
-        }
-    ) { innerPadding ->
-
+        },
+        bottomBar = {
+            NavigationBar(containerColor = PinkLight) {
+                NavigationBarItem(
+                    selected = overlay == null,
+                    onClick  = { paused = false; overlay = null },
+                    label    = { Text("Игра") },
+                    icon     = { Image(
+                        painter = painterResource(id = R.drawable.icon_game),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    ) },
+                    colors   = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
+                        indicatorColor = PinkMain,
+                        unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
+                    )
+                )
+                NavigationBarItem(
+                    selected = overlay == "settings",
+                    onClick  = { paused = true; overlay = "settings" },
+                    label    = { Text("Настройки") },
+                    icon     = { Image(
+                        painter = painterResource(id = R.drawable.icon_settings),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    ) },
+                    colors   = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
+                        indicatorColor = PinkMain,
+                        unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
+                    )
+                )
+                NavigationBarItem(
+                    selected = overlay == "rules",
+                    onClick  = { paused = true; overlay = "rules" },
+                    label    = { Text("Правила") },
+                    icon     = { Image(
+                        painter = painterResource(id = R.drawable.icon_book),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    ) },
+                    colors   = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
+                        indicatorColor = PinkMain,
+                        unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
+                    )
+                )
+                NavigationBarItem(
+                    selected = overlay == "authors",
+                    onClick  = { paused = true; overlay = "authors" },
+                    label    = { Text("Авторы") },
+                    icon     = { Image(
+                        painter = painterResource(id = R.drawable.icon_user),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    ) },
+                    colors   = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
+                        indicatorColor = PinkMain,
+                        unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
+                    )
+                )
+            }
+        }) { innerPadding ->
+        if (overlay == null) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -217,12 +281,18 @@ fun GameScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Очки: $score", color = PinkDark,
-                    style = MaterialTheme.typography.titleMedium)
-                Text("Время: ${(timeLeftMs / 1000).toInt()} с", color = PinkDark,
-                    style = MaterialTheme.typography.titleMedium)
-                Text("Промахи: $misses", color = PinkDark,
-                    style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Очки: $score", color = PinkDark,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    "Время: ${(timeLeftMs / 1000).toInt()} с", color = PinkDark,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    "Промахи: $misses", color = PinkDark,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
 
             BoxWithConstraints(
@@ -241,7 +311,9 @@ fun GameScreen(
                     val spawnInterval = 1000L             // новый таракан раз в секунду
 
                     while (timeLeftMs > 0) {
+
                         delay(frame)
+                        if (paused) continue
                         timeLeftMs -= frame
 
                         // двигаем
@@ -261,7 +333,8 @@ fun GameScreen(
                         // спавним нового, если не превышен лимит из настроек
                         spawnAcc += frame
                         if (spawnAcc >= spawnInterval &&
-                            bugs.size < settings.maxRoaches) {
+                            bugs.size < settings.maxRoaches
+                        ) {
                             bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
                             spawnAcc = 0L
                         }
@@ -345,11 +418,11 @@ fun GameScreen(
 
                                     splashes.add(
                                         Splash(
-                                            id        = splashIdCounter++,
-                                            splashRes  = bug.splashRes,
-                                            x         = bug.x,
-                                            y         = bug.y,
-                                            size      = bug.size * 1.6f,
+                                            id = splashIdCounter++,
+                                            splashRes = bug.splashRes,
+                                            x = bug.x,
+                                            y = bug.y,
+                                            size = bug.size * 1.6f,
                                             startTime = System.currentTimeMillis()
                                         )
                                     )
@@ -359,6 +432,21 @@ fun GameScreen(
                             }
                     )
                 }
+            }
+        }
+        }
+        else {
+            when (overlay) {
+                "settings" -> SettingsScreen(
+                    settings = settings,
+                    onSettingsChange = { /* игнорируем, или settings = it */ }
+                )
+                "rules" -> RulesScreen(
+                    onBack = { overlay = null; paused = false }
+                )
+                "authors" -> AuthorsScreen(
+                    onBack = { overlay = null; paused = false }
+                )
             }
         }
     }
