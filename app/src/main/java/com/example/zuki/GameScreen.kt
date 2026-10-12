@@ -212,6 +212,7 @@ fun GameScreen(
                 NavigationBarItem(
                     selected = overlay == null,
                     onClick  = {  if (overlay == "settings") {
+                        timeLeftMs = settings.roundDurationMs
                         roundNumber++
                     }
                         paused = false
@@ -315,7 +316,7 @@ fun GameScreen(
 
 
                 LaunchedEffect(roundNumber) {
-                    timeLeftMs = settings.roundDurationMs
+
                     val frame = 16L
                     var spawnAcc = 0L
                     val spawnInterval = 1000L             // новый таракан раз в секунду
@@ -485,7 +486,6 @@ fun GameScreen(
                     onSettingsChange = onSettingsChange
                 )
                 "rules" -> RulesScreen(
-                    onBack = { overlay = null; paused = false }
                 )
                 "authors" -> AuthorsScreen(
                     onBack = { overlay = null; paused = false }
