@@ -9,14 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(settings: GameSettings,
                    onSettingsChange: (GameSettings) -> Unit) {
-
 
 
     Scaffold(
@@ -47,7 +48,7 @@ fun SettingsScreen(settings: GameSettings,
                     onSettingsChange(settings.copy(speed = it.toInt()))
                 },
                 valueRange = 1f..10f,
-                steps = 8,                      // 10 позиций: 1,2,...,10
+                steps = 8,
                 valueLabel = "${settings.speed}"
             )
 
@@ -58,7 +59,7 @@ fun SettingsScreen(settings: GameSettings,
                     onSettingsChange(settings.copy(maxRoaches = it.toInt()))
                 },
                 valueRange = 1f..50f,
-                steps = 10,                     // 30 позиций: 1..30
+                steps = 10,
                 valueLabel = "${settings.maxRoaches}"
             )
 
@@ -101,6 +102,40 @@ fun SettingsScreen(settings: GameSettings,
                     .height(56.dp)
             ) {
                 Text("Сохранить", style = MaterialTheme.typography.titleLarge)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Ваш множитель сложности",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = PinkDark
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "x${String.format(Locale.getDefault(), "%.1f", settings.difficultyMultiplier)}",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PinkMain
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Чем сложнее настройки, тем больше очков вы получите в рекордах!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
