@@ -18,6 +18,7 @@ fun SettingsScreen(settings: GameSettings,
                    onSettingsChange: (GameSettings) -> Unit) {
 
 
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -80,8 +81,8 @@ fun SettingsScreen(settings: GameSettings,
                 onValueChange = {
                     onSettingsChange(settings.copy(roundDurationSec = it.toInt()))
                 },
-                valueRange = 30f..180f,
-                steps = 6,
+                valueRange = 30f..90f,
+                steps = 3,
                 valueLabel = "${settings.roundDurationSec} сек"
             )
 

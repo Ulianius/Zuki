@@ -2,14 +2,13 @@ package com.example.zuki
 
 import kotlin.random.Random
 
-// Бонус-очки: монетка, которая появляется на поле и даёт очки за клик
 data class Bonus(
     val id: Long,
-    val x: Float,       // центр по X (0..1)
-    val y: Float,       // центр по Y
-    val size: Float,    // размер (доля от min стороны поля)
-    val points: Int,    // сколько очков даёт
-    val startTime: Long // момент появления
+    val x: Float,
+    val y: Float,
+    val size: Float,
+    val points: Int,
+    val startTime: Long
 )
 
 object BonusFactory {

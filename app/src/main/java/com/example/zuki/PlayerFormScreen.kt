@@ -20,6 +20,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.example.zuki.data.AppDao
+import com.example.zuki.data.PlayerEntity
 import java.util.Calendar
 import java.util.Locale
 
@@ -70,8 +74,10 @@ private fun filterNameInput(input: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerFormScreen(onBack: () -> Unit) {
-
+fun PlayerFormScreen(onBack: () -> Unit,
+                     dao: AppDao,                            // <--- добавили
+                     onPlayerSaved: (Long) -> Unit) {
+    val scope = rememberCoroutineScope()
     var fullName   by remember { mutableStateOf("") }
     var gender     by remember { mutableStateOf("Мужской") }
     var course     by remember { mutableStateOf("1 курс") }
@@ -279,6 +285,10 @@ fun PlayerFormScreen(onBack: () -> Unit) {
                     )
                     dateError = null
                     nameError = null
+                    scope.launch {
+                        val newId = dao.insertPlayer(PlayerEntity(fullName = cleanName))
+                        onPlayerSaved(newId)
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PinkMain,

@@ -9,4 +9,10 @@ data class GameSettings(
     val speedFactor: Float get() = speed / 5f
     val roundDurationMs: Long get() = roundDurationSec * 1000L
     val bonusIntervalMs: Long get() = bonusIntervalSec * 1000L
+
+    val difficultyMultiplier: Float
+        get() = ((180f / roundDurationSec) *
+                (10f / bonusIntervalSec) *
+                (maxRoaches / 10f) *
+                (speed / 5f))
 }

@@ -25,10 +25,6 @@ import androidx.core.content.ContextCompat
 import androidx.compose.ui.viewinterop.AndroidView
 
 
-// ============================================================
-//  ПРАВИЛА ИГРЫ (HTML)
-// ============================================================
-
 private val RULES_HTML = """
 
 <p>Цель игры — <b>уничтожать тараканов</b>, бегающих по экрану, и набирать очки за отведённое время.</p>
@@ -54,7 +50,7 @@ private val RULES_HTML = """
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RulesScreen(onBack: () -> Unit) {
+fun RulesScreen() {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -63,7 +59,7 @@ fun RulesScreen(onBack: () -> Unit) {
                 windowInsets = WindowInsets.statusBars
             )
         }
-    ) { innerPadding ->                         // ← здесь появляется innerPadding
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -71,7 +67,6 @@ fun RulesScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // ★ HTML-текст
             val context = LocalContext.current
             AndroidView(
                 factory = { ctx ->

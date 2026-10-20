@@ -25,29 +25,17 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-
-
-// ============================================================
-//  ЦВЕТА
-// ============================================================
+import androidx.compose.ui.platform.LocalContext
+import com.example.zuki.data.AppDatabase
+import com.example.zuki.data.AppDao
 
 val PinkMain  = Color(0xFFEC6A9C)
 val PinkDark  = Color(0xFFC94F7C)
 val PinkLight = Color(0xFFF8C8DC)
 val PinkText  = Color(0xFFFFFFFF)
 
-
-// ============================================================
-//  КОНСТАНТЫ
-// ============================================================
-
 const val MIN_YEAR = 1926
 const val MAX_YEAR = 2026
-
-
-// ============================================================
-//  ACTIVITY
-// ============================================================
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,20 +50,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-// ============================================================
-//  КОРНЕВОЙ КОМПОНЕНТ: 5 ВКЛАДОК + НИЖНЯЯ ПАНЕЛЬ + СВАЙПЫ
-// ============================================================
-
 @Composable
 fun ZukiApp() {
     var settings by remember { mutableStateOf(GameSettings()) }
     var inGame   by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val dao = remember { AppDatabase.get(context).dao() }
+
+    var currentPlayerId by remember { mutableStateOf<Long?>(null) }
 
     if (inGame) {
         GameScreen(
             settings = settings,
-            onExit   = { inGame = false }
+            onSettingsChange = { settings = it },
+            onExit   = { inGame = false },
+            dao = dao,
+            playerId = currentPlayerId
         )
         return
     }
@@ -96,19 +86,13 @@ fun ZukiApp() {
         scope.launch { pagerState.animateScrollToPage(index) }
     }
 
-    // ★ ТЕСТОВАЯ onPlay с Toast
-    val context = LocalContext.current
     val onPlay: () -> Unit = {
         inGame = true
     }
 
     Scaffold(
 
-        // ============================================================
-        //  НИЖНЯЯ ПАНЕЛЬ
-        // ============================================================
         bottomBar = {
-            // Панель показывается на всех вкладках, кроме «Меню» (страница 0)
             if (pagerState.currentPage != 0) {
                 NavigationBar(containerColor = PinkLight) {
                     tabTitles.forEachIndexed { index, title ->
@@ -154,22 +138,19 @@ fun ZukiApp() {
                     onAuthors  = { goToPage(4) }
                 )
 
-                1 -> PlayerFormScreen(onBack = { goToPage(0) })
+                1 -> PlayerFormScreen(onBack = { goToPage(0)}, dao = dao,                                        // <--- добавили
+                    onPlayerSaved = { id -> currentPlayerId = id } )
                 2 -> SettingsScreen(
                     settings = settings,
                     onSettingsChange = { settings = it }
                 )
-                3 -> RulesScreen(onBack      = { goToPage(0) })
+                3 -> RulesScreen()
                 4 -> AuthorsScreen(onBack    = { goToPage(0) })
             }
         }
     }
 }
 
-
-// ============================================================
-//  ГЛАВНОЕ МЕНЮ (первая вкладка)
-// ============================================================
 
 @Composable
 fun MenuScreen(
@@ -223,7 +204,6 @@ fun MenuScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ---------- КНОПКА "ИГРАТЬ" — крупная, сверху ----------
         Button(
             onClick = onPlay,
             colors = ButtonDefaults.buttonColors(
@@ -236,7 +216,7 @@ fun MenuScreen(
                 .height(72.dp)
         ) {
             Text(
-                text = "▶  Играть",
+                text = "Играть",
                 style = MaterialTheme.typography.headlineSmall
             )
         }
@@ -252,11 +232,6 @@ fun MenuScreen(
         MenuButton("Авторы", onAuthors)
     }
 }
-
-
-// ============================================================
-//  ОБЫЧНАЯ КНОПКА МЕНЮ
-// ============================================================
 
 @Composable
 private fun MenuButton(text: String, onClick: () -> Unit) {

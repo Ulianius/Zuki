@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -25,6 +24,9 @@ import androidx.compose.ui.draw.clipToBounds
 import kotlin.math.roundToInt
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.graphicsLayer
+import com.example.zuki.data.AppDatabase
+import com.example.zuki.data.AppDao
+import com.example.zuki.data.GameResultEntity
 
 private data class Splash(
     val id: Long,
@@ -41,7 +43,9 @@ private const val BONUS_LIFETIME_MS = 3_000L           // живёт 3 секу�
 fun GameScreen(
     settings: GameSettings,
     onSettingsChange: (GameSettings) -> Unit,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    dao: AppDao,                  // <--- проверь, что это есть
+    playerId: Long?
 ) {
 
     var score  by remember { mutableIntStateOf(0) }
@@ -100,14 +104,14 @@ fun GameScreen(
 
                     )
                     .offset(x = heroOffsetX)
-                    .align(Alignment.BottomStart)      // внизу слева — как на макете
+                    .align(Alignment.BottomStart)
             )
 
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .offset(y = 80.dp)
-                    .fillMaxWidth(0.55f)               // 55% ширины — перекрытие с картинкой
+                    .fillMaxWidth(0.55f)
                     .verticalScroll(rememberScrollState())
                     .padding(
                         top = 24.dp,
@@ -116,8 +120,6 @@ fun GameScreen(
                     ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-
-                // ---- Цитата ----
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White.copy(alpha = 0.9f)
@@ -133,7 +135,6 @@ fun GameScreen(
                     )
                 }
 
-                // ---- Статистика ----
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White.copy(alpha = 0.9f)
@@ -156,7 +157,6 @@ fun GameScreen(
                     }
                 }
 
-                // ---- Кнопка "Играть снова" ----
                 Button(
                     onClick = {
                         score = 0; hits = 0; misses = 0
@@ -176,7 +176,6 @@ fun GameScreen(
                     Text("Играть снова", style = MaterialTheme.typography.titleLarge)
                 }
 
-                // ---- Кнопка "В меню" ----
                 Button(
                     onClick = onExit,
                     colors = ButtonDefaults.buttonColors(
@@ -200,7 +199,7 @@ fun GameScreen(
                 title = { },
                 navigationIcon = {
                     TextButton(onClick = onExit) {
-                        Text("← Выйти", color = Color.White, fontSize = 20.sp)
+                        Text("Выйти", color = Color.White, fontSize = 20.sp)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PinkMain),
@@ -283,7 +282,6 @@ fun GameScreen(
                 .padding(innerPadding)
         ) {
 
-            // HUD
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -319,7 +317,7 @@ fun GameScreen(
 
                     val frame = 16L
                     var spawnAcc = 0L
-                    val spawnInterval = 1000L             // новый таракан раз в секунду
+                    val spawnInterval = 1000L
                     var bonusSpawnAcc = 0L
 
                     while (timeLeftMs > 0) {
@@ -328,7 +326,6 @@ fun GameScreen(
                         if (paused) continue
                         timeLeftMs -= frame
 
-                        // двигаем
                         for (i in bugs.indices) {
                             val b = bugs[i]
                             bugs[i] = b.copy(
@@ -337,16 +334,12 @@ fun GameScreen(
                             )
                         }
 
-                        // убираем ушедших за край
                         bugs.removeAll { b ->
                             b.x < -0.3f || b.x > 1.3f || b.y < -0.3f || b.y > 1.3f
                         }
 
-                        // спавним нового, если не превышен лимит из настроек
                         spawnAcc += frame
-                        if (spawnAcc >= spawnInterval &&
-                            bugs.size < settings.maxRoaches
-                        ) {
+                        if (spawnAcc >= spawnInterval && bugs.size < settings.maxRoaches) {
                             bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
                             spawnAcc = 0L
                         }
@@ -361,6 +354,25 @@ fun GameScreen(
                     }
 
                     finished = true
+                    // СОХРАНЯЕМ РЕЗУЛЬТАТ В БД (очки умножаем на скрытую сложность)
+                    if (playerId != null) {
+                        val acc = if (hits + misses == 0) 0
+                        else (hits.toFloat() / (hits + misses) * 100).roundToInt()
+
+                        // Считаем итоговый счет с учетом сложности
+                        val finalScoreWithMultiplier = (score * settings.difficultyMultiplier).roundToInt()
+
+                        dao.insertResult(
+                            GameResultEntity(
+                                playerId = playerId,
+                                score = finalScoreWithMultiplier,  // ← сохраняем умноженный
+                                hits = hits,
+                                misses = misses,
+                                accuracy = acc,
+                                difficultyMultiplier = settings.difficultyMultiplier
+                            )
+                        )
+                    }
                 }
                 LaunchedEffect(Unit) {
                     while (true) {
@@ -399,7 +411,7 @@ fun GameScreen(
                         (splash.size * minOf(fieldW, fieldH)).toDp()
                     }
 
-                    // плавное затухание: 0 мс — alpha=1, 500 мс — alpha=0
+                    // плавное затухание
                     val elapsed = System.currentTimeMillis() - splash.startTime
                     val alpha = (1f - elapsed / 500f).coerceIn(0f, 1f)
 
@@ -413,7 +425,6 @@ fun GameScreen(
                             .graphicsLayer(alpha = alpha)
                     )
                 }
-                // ★ Бонусы
                 bonuses.forEach { bonus ->
                     val xDp = with(LocalDensity.current) { (bonus.x * fieldW).toDp() }
                     val yDp = with(LocalDensity.current) { (bonus.y * fieldH).toDp() }
@@ -427,7 +438,7 @@ fun GameScreen(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .offset(
-                                x = xDp - sizeDp / 2f,        // центрируем монетку
+                                x = xDp - sizeDp / 2f,
                                 y = yDp - sizeDp / 2f
                             )
                             .size(sizeDp)
@@ -503,7 +514,7 @@ fun GameScreen(
                     TextButton(
                         onClick = {
                             showSettingsConfirm = false
-                            // Сбрасываем раунд и открываем настройки
+
                             score = 0
                             hits = 0
                             misses = 0

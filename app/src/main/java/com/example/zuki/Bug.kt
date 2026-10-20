@@ -12,7 +12,7 @@ enum class BugType(
 ) {
     NORMAL(R.drawable.tarakan, splashRes = R.drawable.smert, points = 10, speedMul = 1.0f, baseSize = 0.18f, chance    = 0.50f),
     FAST  (R.drawable.tarakan_fast,  splashRes = R.drawable.smert_fast,  points = 30, speedMul = 2.8f, baseSize = 0.20f, chance    = 0.35f),
-    RARE (iconRes   = R.drawable.tarakan_rare, splashRes = R.drawable.smert_rare,points    = 100, speedMul  = 1.0f, baseSize  = 0.22f,chance    = 0.15f  )
+    RARE (iconRes = R.drawable.tarakan_rare, splashRes = R.drawable.smert_rare,points    = 100, speedMul  = 1.0f, baseSize  = 0.22f,chance    = 0.15f  )
 }
 data class Bug(
     val id: Long,
@@ -38,26 +38,27 @@ object BugFactory {
 
         val type = pickType()
 
-
-        // Направление — случайное (0..2π)
         val angle = Random.nextFloat() * 2f * Math.PI.toFloat()
 
-        // Базовая скорость 0.10..0.25 * speedFactor * speedMul
         val baseSpeed = (Random.nextFloat() * 0.15f + 0.10f) * speedFactor * type.speedMul
 
         val vx = kotlin.math.cos(angle) * baseSpeed
         val vy = kotlin.math.sin(angle) * baseSpeed
 
-        // Размер — с небольшим разбросом от базового
         val size = type.baseSize * 1.2f
 
+
+        val halfSize = size / 2f
+        val minPos   = halfSize
+        val maxPos   = 1f - halfSize
+
         return Bug(
-            id = nextId++,
+            id   = nextId++,
             type = type,
-            x = Random.nextFloat() * 0.8f + 0.1f,
-            y = Random.nextFloat() * 0.8f + 0.1f,
-            vx = vx,
-            vy = vy,
+            x    = Random.nextFloat() * (maxPos - minPos) + minPos,
+            y    = Random.nextFloat() * (maxPos - minPos) + minPos,
+            vx   = vx,
+            vy   = vy,
             size = size
         )
 
