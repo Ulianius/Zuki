@@ -25,7 +25,17 @@ import kotlinx.coroutines.launch
 import com.example.zuki.data.AppDao
 import com.example.zuki.data.PlayerEntity
 import java.util.Calendar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import java.util.Locale
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+
+
 
 
 
@@ -78,6 +88,8 @@ fun PlayerFormScreen(onBack: () -> Unit,
                      dao: AppDao,                            // <--- добавили
                      onPlayerSaved: (Long) -> Unit) {
     val scope = rememberCoroutineScope()
+    var showPlayersDialog by remember { mutableStateOf(false) }
+    var savedPlayers by remember { mutableStateOf<List<PlayerEntity>>(emptyList()) }
     var fullName   by remember { mutableStateOf("") }
     var gender     by remember { mutableStateOf("Мужской") }
     var course     by remember { mutableStateOf("1 курс") }
@@ -121,6 +133,7 @@ fun PlayerFormScreen(onBack: () -> Unit,
                 )
             )
         }
+
     ) { innerPadding ->
 
         Column(
@@ -131,6 +144,19 @@ fun PlayerFormScreen(onBack: () -> Unit,
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        savedPlayers = dao.getAllPlayers()
+                        showPlayersDialog = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PinkMain)
+            ) {
+                Text("Выбрать существующий аккаунт")
+            }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = fullName,
@@ -347,5 +373,59 @@ fun PlayerFormScreen(onBack: () -> Unit,
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+    if (showPlayersDialog) {
+        AlertDialog(
+            onDismissRequest = { showPlayersDialog = false },
+            title = { Text("Сохраненные игроки") },
+            text = {
+                if (savedPlayers.isEmpty()) {
+                    Text("Пока нет зарегистрированных игроков.")
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                        items(savedPlayers) { p ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        fullName = p.fullName
+                                        onPlayerSaved(p.id)
+                                        showPlayersDialog = false
+                                    }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = p.fullName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.Black,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                // ★ ЗАМЕНА ИКОНКИ НА ТЕКСТ ★
+                                TextButton(
+                                    onClick = {
+                                        scope.launch {
+                                            dao.deletePlayerById(p.id)
+                                            dao.deleteResultsByPlayerId(p.id)
+                                            savedPlayers = dao.getAllPlayers()
+                                        }
+                                    }
+                                ) {
+                                    Text("Удалить", color = Color.Red, style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
+                            HorizontalDivider(color = PinkLight)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPlayersDialog = false }) {
+                    Text("Закрыть", color = PinkDark)
+                }
+            }
+        )
     }
 }
