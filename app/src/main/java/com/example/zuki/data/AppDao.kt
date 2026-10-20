@@ -4,6 +4,11 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 
+data class TopScore(
+    val playerName: String,
+    val score: Int,
+    val difficultyMultiplier: Float
+)
 @Dao
 interface AppDao {
     @Insert
@@ -26,4 +31,12 @@ interface AppDao {
 
     @Query("DELETE FROM game_results WHERE playerId = :playerId")
     suspend fun deleteResultsByPlayerId(playerId: Long)
+    @Query("""
+        SELECT p.fullName AS playerName, r.score AS score, r.difficultyMultiplier AS difficultyMultiplier 
+        FROM game_results r 
+        INNER JOIN players p ON r.playerId = p.id 
+        ORDER BY r.score DESC 
+        LIMIT 10
+    """)
+    suspend fun getTopScores(): List<TopScore>
 }

@@ -7,5 +7,9 @@ import androidx.room.PrimaryKey
 data class PlayerEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val fullName: String,
+    val gender: String,
+    val course: String,
+    val birthDate: String,
+    val zodiac: String,
     val createdAt: Long = System.currentTimeMillis()
 )

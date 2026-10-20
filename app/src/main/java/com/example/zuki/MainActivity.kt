@@ -69,11 +69,12 @@ fun ZukiApp() {
         )
         return
     }
-    val tabTitles = listOf("Меню", "Регистрация", "Настройки", "Правила", "Авторы")
+    val tabTitles = listOf("Меню", "Регистр.", "Настр.", "Рекорды", "Правила", "Авторы")
     val tabIcons  = listOf(
         R.drawable.icon_home,
         R.drawable.icon_document,
         R.drawable.icon_settings,
+        R.drawable.icon_medal,
         R.drawable.icon_book,
         R.drawable.icon_user
     )
@@ -134,8 +135,10 @@ fun ZukiApp() {
                     onPlay     = onPlay,
                     onRegister = { goToPage(1) },
                     onSettings = { goToPage(2) },
-                    onRules    = { goToPage(3) },
-                    onAuthors  = { goToPage(4) }
+                    onRules    = { goToPage(4) },
+                    onAuthors  = { goToPage(5) },
+                    onRecords  = { goToPage(3) }
+
                 )
 
                 1 -> PlayerFormScreen(onBack = { goToPage(0)}, dao = dao,                                        // <--- добавили
@@ -144,8 +147,9 @@ fun ZukiApp() {
                     settings = settings,
                     onSettingsChange = { settings = it }
                 )
-                3 -> RulesScreen()
-                4 -> AuthorsScreen(onBack    = { goToPage(0) })
+                3 ->  RecordsScreen(dao = dao)
+                4 -> RulesScreen()
+                5 -> AuthorsScreen(onBack    = { goToPage(0) })
             }
         }
     }
@@ -158,7 +162,8 @@ fun MenuScreen(
     onRegister: () -> Unit,
     onSettings: () -> Unit,
     onRules: () -> Unit,
-    onAuthors: () -> Unit
+    onAuthors: () -> Unit,
+    onRecords: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -226,6 +231,8 @@ fun MenuScreen(
         MenuButton("Регистрация", onRegister)
         Spacer(modifier = Modifier.height(12.dp))
         MenuButton("Настройки игры", onSettings)
+        Spacer(modifier = Modifier.height(12.dp))
+        MenuButton("Рекорды", onRecords)
         Spacer(modifier = Modifier.height(12.dp))
         MenuButton("Правила игры", onRules)
         Spacer(modifier = Modifier.height(12.dp))

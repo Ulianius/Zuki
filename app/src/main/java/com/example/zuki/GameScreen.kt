@@ -244,6 +244,21 @@ fun GameScreen(
                     )
                 )
                 NavigationBarItem(
+                    selected = overlay == "records",
+                    onClick  = { paused = true; overlay = "records" },
+                    label    = { Text("Рекорды") },
+                    icon     = { Image(
+                        painter = painterResource(id = R.drawable.icon_medal), // или свою иконку рекордов
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    ) },
+                    colors   = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
+                        indicatorColor = PinkMain,
+                        unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
+                    )
+                )
+                NavigationBarItem(
                     selected = overlay == "rules",
                     onClick  = { paused = true; overlay = "rules" },
                     label    = { Text("Правила") },
@@ -496,6 +511,7 @@ fun GameScreen(
                     settings = settings,
                     onSettingsChange = onSettingsChange
                 )
+                "records" -> RecordsScreen(dao = dao)
                 "rules" -> RulesScreen(
                 )
                 "authors" -> AuthorsScreen(

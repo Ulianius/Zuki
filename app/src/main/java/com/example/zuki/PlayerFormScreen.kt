@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.delay
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -223,23 +224,6 @@ fun PlayerFormScreen(onBack: () -> Unit,
                 }
             }
 
-
-            Text("Уровень сложности: ${difficulty.toInt()}")
-            Slider(
-                value = difficulty,
-                onValueChange = { difficulty = it },
-                valueRange = 1f..10f,
-                steps = 9,
-                colors = SliderDefaults.colors(
-                    thumbColor         = PinkMain,
-                    activeTrackColor   = PinkMain,
-                    inactiveTrackColor = PinkLight,
-                    activeTickColor    = Color.White,
-                    inactiveTickColor  = PinkMain
-                )
-            )
-
-
             Text("Дата рождения")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -312,8 +296,18 @@ fun PlayerFormScreen(onBack: () -> Unit,
                     dateError = null
                     nameError = null
                     scope.launch {
-                        val newId = dao.insertPlayer(PlayerEntity(fullName = cleanName))
-                        onPlayerSaved(newId)
+                        val newId = dao.insertPlayer(
+                            PlayerEntity(
+                                fullName = cleanName,
+                                gender = gender,
+                                course = course,
+                                // difficulty = difficulty.toInt(),  <--- УДАЛИЛИ
+                                birthDate = birthDateStr,
+                                zodiac = getZodiacSign(d, m)
+                            )
+                        )
+                        delay(100) // ждем, пока Compose отрисует блок
+                        scrollState.animateScrollTo(scrollState.maxValue)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -325,7 +319,6 @@ fun PlayerFormScreen(onBack: () -> Unit,
                 Text("Зарегистрировать")
             }
 
-            // ---------- Результат ----------
             player?.let { p ->
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -370,7 +363,6 @@ fun PlayerFormScreen(onBack: () -> Unit,
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -389,6 +381,23 @@ fun PlayerFormScreen(onBack: () -> Unit,
                                     .fillMaxWidth()
                                     .clickable {
                                         fullName = p.fullName
+                                        gender = p.gender
+                                        course = p.course
+                                        val parts = p.birthDate.split(".")
+                                        if (parts.size == 3) {
+                                            day = parts[0]
+                                            month = parts[1]
+                                            year = parts[2]
+                                        }
+                                        player = Player(
+                                            fullName = p.fullName,
+                                            gender = p.gender,
+                                            course = p.course,
+                                            difficulty = difficulty.toInt(),
+                                            birthDate = p.birthDate,
+                                            zodiac = p.zodiac
+                                        )
+
                                         onPlayerSaved(p.id)
                                         showPlayersDialog = false
                                     }
@@ -403,7 +412,6 @@ fun PlayerFormScreen(onBack: () -> Unit,
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                // ★ ЗАМЕНА ИКОНКИ НА ТЕКСТ ★
                                 TextButton(
                                     onClick = {
                                         scope.launch {
