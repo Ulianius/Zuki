@@ -8,13 +8,14 @@ data class Bonus(
     val y: Float,
     val size: Float,
     val points: Int,
-    val startTime: Long
+    val startTime: Long,
+    val isGravity: Boolean = false
 )
 
 object BonusFactory {
     private var nextId = 1L
 
-    fun spawn(speedFactor: Float): Bonus {
+    fun spawn(speedFactor: Float, isGravity: Boolean = false): Bonus {
         val size = 0.3f
         val half = size / 2f
 
@@ -23,8 +24,9 @@ object BonusFactory {
             x         = Random.nextFloat() * (1f - 2 * half) + half,
             y         = Random.nextFloat() * (1f - 2 * half) + half,
             size      = size,
-            points    = 50,
-            startTime = System.currentTimeMillis()
+            points    = if (isGravity) 100 else 50, // За бонус наклона даем 100 очков
+            startTime = System.currentTimeMillis(),
+            isGravity = isGravity
         )
     }
 }

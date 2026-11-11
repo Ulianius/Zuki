@@ -1,32 +1,31 @@
 package com.example.zuki
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import androidx.compose.ui.draw.clipToBounds
-import kotlin.math.roundToInt
-import androidx.annotation.DrawableRes
-import androidx.compose.ui.graphics.graphicsLayer
-import com.example.zuki.data.AppDatabase
 import com.example.zuki.data.AppDao
 import com.example.zuki.data.GameResultEntity
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 private data class Splash(
     val id: Long,
@@ -37,17 +36,17 @@ private data class Splash(
     val startTime: Long
 )
 private var splashIdCounter = 0L
-private const val BONUS_LIFETIME_MS = 3_000L           // живёт 3 секунды
+private const val BONUS_LIFETIME_MS = 3_000L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     settings: GameSettings,
     onSettingsChange: (GameSettings) -> Unit,
     onExit: () -> Unit,
-    dao: AppDao,                  // <--- проверь, что это есть
+    dao: AppDao,
     playerId: Long?
 ) {
-
     var score  by remember { mutableIntStateOf(0) }
     var hits   by remember { mutableIntStateOf(0) }
     var misses by remember { mutableIntStateOf(0) }
@@ -62,12 +61,27 @@ fun GameScreen(
     val splashes = remember { mutableStateListOf<Splash>() }
     var finished by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val mediaPlayer = remember { android.media.MediaPlayer.create(context, R.raw.bug_scream) }
+    var isGravityActive by remember { mutableStateOf(false) }
+    val (tiltX, tiltY) = rememberTiltSensor()
+    val currentTiltX by rememberUpdatedState(tiltX)
+    val currentTiltY by rememberUpdatedState(tiltY)
+
+    // Освобождение звука при выходе с экрана
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.release()
+        }
+    }
+
+    // ---------- ИТОГОВЫЙ ЭКРАН ----------
     if (finished) {
         val accuracy = if (hits + misses == 0) 0
         else (hits.toFloat() / (hits + misses) * 100).roundToInt()
 
         val heroImage: Int = remember(roundNumber, accuracy) {
-            val heroIndex = roundNumber % 3                  // 0, 1, 2 по кругу
+            val heroIndex = roundNumber % 3
             val isAngry   = score < 300
 
             when (heroIndex) {
@@ -95,13 +109,14 @@ fun GameScreen(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.95f)           // 85% ширины
+                    .fillMaxWidth(0.95f)
                     .graphicsLayer(
                         scaleX = if (heroImage == R.drawable.hero_3_happy ||
-                            heroImage == R.drawable.hero_3_sad) 3f else 1f,
+                            heroImage == R.drawable.hero_3_sad
+                        ) 3f else 1f,
                         scaleY = if (heroImage == R.drawable.hero_3_happy ||
-                            heroImage == R.drawable.hero_3_sad) 3f else 1f
-
+                            heroImage == R.drawable.hero_3_sad
+                        ) 3f else 1f
                     )
                     .offset(x = heroOffsetX)
                     .align(Alignment.BottomStart)
@@ -113,17 +128,11 @@ fun GameScreen(
                     .offset(y = 80.dp)
                     .fillMaxWidth(0.55f)
                     .verticalScroll(rememberScrollState())
-                    .padding(
-                        top = 24.dp,
-                        bottom = 24.dp,
-                        end = 16.dp
-                    ),
+                    .padding(top = 24.dp, bottom = 24.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.9f)
-                    ),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
                     shape = RoundedCornerShape(20.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -136,9 +145,7 @@ fun GameScreen(
                 }
 
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.9f)
-                    ),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
                     shape = RoundedCornerShape(20.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -146,14 +153,10 @@ fun GameScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("Очки: $score", color = PinkMain,
-                            style = MaterialTheme.typography.titleMedium)
-                        Text("Промахи: $misses", color = PinkMain,
-                            style = MaterialTheme.typography.titleMedium)
-                        Text("Попадания: $hits", color = PinkMain,
-                            style = MaterialTheme.typography.titleMedium)
-                        Text("Точность: $accuracy %", color = PinkMain,
-                            style = MaterialTheme.typography.titleMedium)
+                        Text("Очки: $score", color = PinkMain, style = MaterialTheme.typography.titleMedium)
+                        Text("Промахи: $misses", color = PinkMain, style = MaterialTheme.typography.titleMedium)
+                        Text("Попадания: $hits", color = PinkMain, style = MaterialTheme.typography.titleMedium)
+                        Text("Точность: $accuracy %", color = PinkMain, style = MaterialTheme.typography.titleMedium)
                     }
                 }
 
@@ -166,24 +169,22 @@ fun GameScreen(
                         bonuses.clear()
                         roundNumber++
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PinkDark,
-                        contentColor   = Color.White
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkDark, contentColor = Color.White),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
                 ) {
                     Text("Играть снова", style = MaterialTheme.typography.titleLarge)
                 }
 
                 Button(
                     onClick = onExit,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PinkMain.copy(alpha = 0.6f),
-                        contentColor   = Color.White
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkMain.copy(alpha = 0.6f), contentColor = Color.White),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
                 ) {
                     Text("В меню", style = MaterialTheme.typography.titleLarge)
                 }
@@ -193,6 +194,7 @@ fun GameScreen(
     }
 
 
+    // ---------- ИГРОВОЙ ЭКРАН ----------
     Scaffold(
         topBar = {
             TopAppBar(
@@ -210,21 +212,18 @@ fun GameScreen(
             NavigationBar(containerColor = PinkLight) {
                 NavigationBarItem(
                     selected = overlay == null,
-                    onClick  = {  if (overlay == "settings") {
-                        timeLeftMs = settings.roundDurationMs
-                        roundNumber++
-                    }
+                    onClick  = {
+                        if (overlay == "settings") {
+                            timeLeftMs = settings.roundDurationMs
+                            roundNumber++
+                        }
                         paused = false
-                        overlay = null},
+                        overlay = null
+                    },
                     label    = { Text("Игра") },
-                    icon     = { Image(
-                        painter = painterResource(id = R.drawable.icon_game ),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    ) },
+                    icon     = { Image(painterResource(R.drawable.icon_game), null, modifier = Modifier.size(24.dp)) },
                     colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
-                        indicatorColor = PinkMain,
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark, indicatorColor = PinkMain,
                         unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
                     )
                 )
@@ -232,14 +231,9 @@ fun GameScreen(
                     selected = overlay == "settings",
                     onClick  = { paused = true; showSettingsConfirm = true  },
                     label    = { Text("Настройки") },
-                    icon     = { Image(
-                        painter = painterResource(id = R.drawable.icon_settings),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    ) },
+                    icon     = { Image(painterResource(R.drawable.icon_settings), null, modifier = Modifier.size(24.dp)) },
                     colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
-                        indicatorColor = PinkMain,
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark, indicatorColor = PinkMain,
                         unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
                     )
                 )
@@ -247,14 +241,9 @@ fun GameScreen(
                     selected = overlay == "records",
                     onClick  = { paused = true; overlay = "records" },
                     label    = { Text("Рекорды") },
-                    icon     = { Image(
-                        painter = painterResource(id = R.drawable.icon_medal), // или свою иконку рекордов
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    ) },
+                    icon     = { Image(painterResource(R.drawable.icon_medal), null, modifier = Modifier.size(24.dp)) },
                     colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
-                        indicatorColor = PinkMain,
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark, indicatorColor = PinkMain,
                         unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
                     )
                 )
@@ -262,14 +251,9 @@ fun GameScreen(
                     selected = overlay == "rules",
                     onClick  = { paused = true; overlay = "rules" },
                     label    = { Text("Правила") },
-                    icon     = { Image(
-                        painter = painterResource(id = R.drawable.icon_book),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    ) },
+                    icon     = { Image(painterResource(R.drawable.icon_book), null, modifier = Modifier.size(24.dp)) },
                     colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
-                        indicatorColor = PinkMain,
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark, indicatorColor = PinkMain,
                         unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
                     )
                 )
@@ -277,270 +261,276 @@ fun GameScreen(
                     selected = overlay == "authors",
                     onClick  = { paused = true; overlay = "authors" },
                     label    = { Text("Авторы") },
-                    icon     = { Image(
-                        painter = painterResource(id = R.drawable.icon_user),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    ) },
+                    icon     = { Image(painterResource(R.drawable.icon_user), null, modifier = Modifier.size(24.dp)) },
                     colors   = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PinkDark, selectedTextColor = PinkDark,
-                        indicatorColor = PinkMain,
+                        selectedIconColor = PinkDark, selectedTextColor = PinkDark, indicatorColor = PinkMain,
                         unselectedIconColor = PinkMain, unselectedTextColor = PinkMain
                     )
                 )
             }
-        }) { innerPadding ->
+        }
+    ) { innerPadding ->
         if (overlay == null) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PinkLight)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "Очки: $score", color = PinkDark,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    "Время: ${(timeLeftMs / 1000).toInt()} с", color = PinkDark,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    "Промахи: $misses", color = PinkDark,
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            BoxWithConstraints(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFFFF0F5))
-                    .clipToBounds()
+                    .padding(innerPadding)
             ) {
-                val fieldW = constraints.maxWidth.toFloat()
-                val fieldH = constraints.maxHeight.toFloat()
+                // HUD
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PinkLight)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Очки: $score", color = PinkDark, style = MaterialTheme.typography.titleMedium)
+                    Text("Время: ${(timeLeftMs / 1000).toInt()} с", color = PinkDark, style = MaterialTheme.typography.titleMedium)
+                    Text("Промахи: $misses", color = PinkDark, style = MaterialTheme.typography.titleMedium)
+                }
+
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFFFF0F5))
+                        .clipToBounds()
+                ) {
+                    val fieldW = constraints.maxWidth.toFloat()
+                    val fieldH = constraints.maxHeight.toFloat()
+
+                    // ОСНОВНОЙ ИГРОВОЙ ЦИКЛ ★
+                    LaunchedEffect(roundNumber) {
+                        val frame = 16L
+                        var spawnAcc = 0L
+                        val spawnInterval = 1000L
+                        var bonusSpawnAcc = 0L
+
+                        while (timeLeftMs > 0) {
+                            delay(frame)
+                            if (paused) continue
+                            timeLeftMs -= frame
+
+                            for (i in bugs.indices) {
+                                val b = bugs[i]
+
+                                if (isGravityActive) {
+                                    val forceX = (-currentTiltX / 10f) * 0.01f
+                                    val forceY = (-currentTiltY / 10f) * 0.01f
 
 
-                LaunchedEffect(roundNumber) {
+                                    var newX = b.x + forceX
+                                    var newY = b.y + forceY
 
-                    val frame = 16L
-                    var spawnAcc = 0L
-                    val spawnInterval = 1000L
-                    var bonusSpawnAcc = 0L
+                                    if (newX < 0.05f) newX = 0.05f
+                                    if (newX > 0.90f) newX = 0.90f
+                                    if (newY < 0.05f) newY = 0.05f
+                                    if (newY > 0.85f) newY = 0.85f
 
-                    while (timeLeftMs > 0) {
 
-                        delay(frame)
-                        if (paused) continue
-                        timeLeftMs -= frame
+                                    bugs[i] = b.copy(
+                                        x = newX,
+                                        y = newY
+                                    )
+                                } else {
+                                    bugs[i] = b.copy(
+                                        x = b.x + b.vx * (frame / 1000f),
+                                        y = b.y + b.vy * (frame / 1000f)
+                                    )
+                                }
+                            }
 
-                        for (i in bugs.indices) {
-                            val b = bugs[i]
-                            bugs[i] = b.copy(
-                                x = b.x + b.vx * (frame / 1000f),
-                                y = b.y + b.vy * (frame / 1000f)
+                            if (!isGravityActive) {
+                                bugs.removeAll { b ->
+                                    b.x < -0.3f || b.x > 1.3f || b.y < -0.3f || b.y > 1.3f
+                                }
+                            }
+
+                            // Удаляем ушедших за край
+                            bugs.removeAll { b ->
+                                b.x < -0.3f || b.x > 1.3f || b.y < -0.3f || b.y > 1.3f
+                            }
+
+                            // Спавн тараканов
+                            spawnAcc += frame
+                            if (spawnAcc >= spawnInterval && bugs.size < settings.maxRoaches) {
+                                bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
+                                spawnAcc = 0L
+                            }
+
+                            // Спавн бонусов
+                            bonusSpawnAcc += frame
+                            if (bonusSpawnAcc >= settings.bonusIntervalMs && bonuses.size < 2) {
+                                val timePassed = settings.roundDurationMs - timeLeftMs
+                                val isGravity = if (timePassed > 10_000L) {
+                                    kotlin.random.Random.nextBoolean()
+                                } else {
+                                    false
+                                }
+                                bonuses.add(BonusFactory.spawn(settings.speedFactor, isGravity))
+                                bonusSpawnAcc = 0L
+                            }
+
+                            // Удаление старых бонусов
+                            val now = System.currentTimeMillis()
+                            bonuses.removeAll { now - it.startTime > BONUS_LIFETIME_MS }
+                        }
+
+                        finished = true
+                        // Сохранение в БД
+                        if (playerId != null) {
+                            val acc = if (hits + misses == 0) 0
+                            else (hits.toFloat() / (hits + misses) * 100).roundToInt()
+                            val finalScoreWithMultiplier = (score * settings.difficultyMultiplier).roundToInt()
+                            dao.insertResult(
+                                GameResultEntity(
+                                    playerId = playerId,
+                                    score = finalScoreWithMultiplier,
+                                    hits = hits,
+                                    misses = misses,
+                                    accuracy = acc,
+                                    difficultyMultiplier = settings.difficultyMultiplier
+                                )
                             )
                         }
-
-                        bugs.removeAll { b ->
-                            b.x < -0.3f || b.x > 1.3f || b.y < -0.3f || b.y > 1.3f
-                        }
-
-                        spawnAcc += frame
-                        if (spawnAcc >= spawnInterval && bugs.size < settings.maxRoaches) {
-                            bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
-                            spawnAcc = 0L
-                        }
-                        bonusSpawnAcc += frame
-                        if (bonusSpawnAcc >= settings.bonusIntervalMs && bonuses.size < 2) {
-                            bonuses.add(BonusFactory.spawn(settings.speedFactor))
-                            bonusSpawnAcc = 0L
-                        }
-
-                        val now = System.currentTimeMillis()
-                        bonuses.removeAll { now - it.startTime > BONUS_LIFETIME_MS }
                     }
 
-                    finished = true
-                    // СОХРАНЯЕМ РЕЗУЛЬТАТ В БД (очки умножаем на скрытую сложность)
-                    if (playerId != null) {
-                        val acc = if (hits + misses == 0) 0
-                        else (hits.toFloat() / (hits + misses) * 100).roundToInt()
+                    // ★ ТАЙМЕР ВЫКЛЮЧЕНИЯ ГРАВИТАЦИИ ★
+                    LaunchedEffect(isGravityActive) {
+                        if (isGravityActive) {
+                            kotlinx.coroutines.delay(5000L) // 5 секунд
+                            isGravityActive = false
+                            mediaPlayer?.pause()
+                            mediaPlayer?.seekTo(0)
+                        }
+                    }
 
-                        // Считаем итоговый счет с учетом сложности
-                        val finalScoreWithMultiplier = (score * settings.difficultyMultiplier).roundToInt()
+                    // Очистка брызг
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(50)
+                            val now = System.currentTimeMillis()
+                            splashes.removeAll { now - it.startTime > 500L }
+                        }
+                    }
 
-                        dao.insertResult(
-                            GameResultEntity(
-                                playerId = playerId,
-                                score = finalScoreWithMultiplier,  // ← сохраняем умноженный
-                                hits = hits,
-                                misses = misses,
-                                accuracy = acc,
-                                difficultyMultiplier = settings.difficultyMultiplier
-                            )
+                    // Ловушка промахов (фон)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTapGestures(onTap = {
+                                    misses++
+                                    score -= 5
+                                })
+                            }
+                    )
+
+                    // Отрисовка брызг
+                    splashes.forEach { splash ->
+                        val sizePx = splash.size * minOf(fieldW, fieldH)
+                        val shiftPx = -sizePx * 0.375f / 2f
+                        val shiftDp = with(LocalDensity.current) { shiftPx.toDp() }
+                        val xDp = with(LocalDensity.current) { (splash.x * fieldW).toDp() } + shiftDp
+                        val yDp = with(LocalDensity.current) { (splash.y * fieldH).toDp() } + shiftDp
+                        val sizeDp = with(LocalDensity.current) { (splash.size * minOf(fieldW, fieldH)).toDp() }
+                        val elapsed = System.currentTimeMillis() - splash.startTime
+                        val alpha = (1f - elapsed / 500f).coerceIn(0f, 1f)
+
+                        Image(
+                            painter = painterResource(id = splash.splashRes),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .offset(x = xDp, y = yDp)
+                                .size(sizeDp)
+                                .graphicsLayer(alpha = alpha)
+                        )
+                    }
+
+                    // Отрисовка бонусов
+                    bonuses.forEach { bonus ->
+                        val xDp = with(LocalDensity.current) { (bonus.x * fieldW).toDp() }
+                        val yDp = with(LocalDensity.current) { (bonus.y * fieldH).toDp() }
+                        val sizeDp = with(LocalDensity.current) { (bonus.size * minOf(fieldW, fieldH)).toDp() }
+                        val bonusImage = if (bonus.isGravity) R.drawable.otrava else R.drawable.grecha
+
+                        Image(
+                            painter = painterResource(id = bonusImage),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .offset(x = xDp - sizeDp / 2f, y = yDp - sizeDp / 2f)
+                                .size(sizeDp)
+                                .pointerInput(bonus.id) {
+                                    detectTapGestures(onTap = {
+                                        score += bonus.points
+                                        if (bonus.isGravity) {
+                                            isGravityActive = true
+                                            mediaPlayer?.isLooping = true
+                                            mediaPlayer?.start()
+                                        }
+                                        bonuses.removeAll { it.id == bonus.id }
+                                    })
+                                }
+                        )
+                    }
+
+                    // Отрисовка тараканов
+                    bugs.forEach { bug ->
+                        val xDp = with(LocalDensity.current) { (bug.x * fieldW).toDp() }
+                        val yDp = with(LocalDensity.current) { (bug.y * fieldH).toDp() }
+                        val sizeDp = with(LocalDensity.current) { (bug.size * minOf(fieldW, fieldH)).toDp() }
+
+                        Image(
+                            painter = painterResource(id = bug.iconRes),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .offset(x = xDp, y = yDp)
+                                .size(sizeDp)
+                                .pointerInput(bug.id) {
+                                    detectTapGestures(onTap = {
+                                        score += bug.points
+                                        hits++
+                                        splashes.add(
+                                            Splash(
+                                                id = splashIdCounter++,
+                                                splashRes = bug.splashRes,
+                                                x = bug.x,
+                                                y = bug.y,
+                                                size = bug.size * 1.6f,
+                                                startTime = System.currentTimeMillis()
+                                            )
+                                        )
+                                        bugs.removeAll { it.id == bug.id }
+                                    })
+                                }
                         )
                     }
                 }
-                LaunchedEffect(Unit) {
-                    while (true) {
-                        delay(50)
-                        val now = System.currentTimeMillis()
-                        splashes.removeAll { now - it.startTime > 500L }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures(onTap = {
-                                misses++
-                                score -= 5
-                            })
-                        }
-                )
-                splashes.forEach { splash ->
-
-                    val sizePx = splash.size * minOf(fieldW, fieldH)
-
-
-                    val shiftPx = -sizePx * 0.375f / 2f
-                    val shiftDp = with(LocalDensity.current) { shiftPx.toDp() }
-
-                    val xDp = with(LocalDensity.current) {
-                        (splash.x * fieldW).toDp()
-                    } + shiftDp
-                    val yDp = with(LocalDensity.current) {
-                        (splash.y * fieldH).toDp()
-                    } + shiftDp
-
-                    val sizeDp = with(LocalDensity.current) {
-                        (splash.size * minOf(fieldW, fieldH)).toDp()
-                    }
-
-                    // плавное затухание
-                    val elapsed = System.currentTimeMillis() - splash.startTime
-                    val alpha = (1f - elapsed / 500f).coerceIn(0f, 1f)
-
-                    Image(
-                        painter = painterResource(id = splash.splashRes),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .offset(x = xDp, y = yDp)
-                            .size(sizeDp)
-                            .graphicsLayer(alpha = alpha)
-                    )
-                }
-                bonuses.forEach { bonus ->
-                    val xDp = with(LocalDensity.current) { (bonus.x * fieldW).toDp() }
-                    val yDp = with(LocalDensity.current) { (bonus.y * fieldH).toDp() }
-                    val sizeDp = with(LocalDensity.current) {
-                        (bonus.size * minOf(fieldW, fieldH)).toDp()
-                    }
-
-                    Image(
-                        painter = painterResource(id = R.drawable.grecha),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .offset(
-                                x = xDp - sizeDp / 2f,
-                                y = yDp - sizeDp / 2f
-                            )
-                            .size(sizeDp)
-                            .pointerInput(bonus.id) {
-                                detectTapGestures(onTap = {
-                                    score += bonus.points
-                                    bonuses.removeAll { it.id == bonus.id }
-                                })
-                            }
-                    )
-                }
-
-                bugs.forEach { bug ->
-                    val xDp = with(LocalDensity.current) { (bug.x * fieldW).toDp() }
-                    val yDp = with(LocalDensity.current) { (bug.y * fieldH).toDp() }
-                    val sizeDp = with(LocalDensity.current) {
-                        (bug.size * minOf(fieldW, fieldH)).toDp()
-                    }
-
-                    Image(
-                        painter = painterResource(id = bug.iconRes),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .offset(x = xDp, y = yDp)
-                            .size(sizeDp)
-                            .pointerInput(bug.id) {
-                                detectTapGestures(onTap = {
-
-                                    score += bug.points
-                                    hits++
-
-                                    splashes.add(
-                                        Splash(
-                                            id = splashIdCounter++,
-                                            splashRes = bug.splashRes,
-                                            x = bug.x,
-                                            y = bug.y,
-                                            size = bug.size * 1.6f,
-                                            startTime = System.currentTimeMillis()
-                                        )
-                                    )
-
-                                    bugs.removeAll { it.id == bug.id }
-                                })
-                            }
-                    )
-                }
             }
-        }
-        }
-        else {
+        } else {
             when (overlay) {
-                "settings" -> SettingsScreen(
-                    settings = settings,
-                    onSettingsChange = onSettingsChange
-                )
+                "settings" -> SettingsScreen(settings = settings, onSettingsChange = onSettingsChange)
                 "records" -> RecordsScreen(dao = dao)
-                "rules" -> RulesScreen(
-                )
-                "authors" -> AuthorsScreen(
-                    onBack = { overlay = null; paused = false }
-                )
+                "rules" -> RulesScreen()
+                "authors" -> AuthorsScreen(onBack = { overlay = null; paused = false })
             }
         }
+
         if (showSettingsConfirm) {
             AlertDialog(
                 onDismissRequest = { showSettingsConfirm = false },
                 title = { Text("Изменить настройки?") },
-                text = {
-                    Text("Текущий раунд будет сброшен. Новый раунд начнётся заново с новыми настройками.")
-                },
+                text = { Text("Текущий раунд будет сброшен. Новый раунд начнётся заново с новыми настройками.") },
                 confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showSettingsConfirm = false
-
-                            score = 0
-                            hits = 0
-                            misses = 0
-                            bugs.clear()
-                            splashes.clear()
-                            finished = false
-                            overlay = "settings"
-                            bonuses.clear()
-                        }
-                    ) {
+                    TextButton(onClick = {
+                        showSettingsConfirm = false
+                        score = 0; hits = 0; misses = 0
+                        bugs.clear(); splashes.clear(); bonuses.clear()
+                        finished = false
+                        overlay = "settings"
+                    }) {
                         Text("Да, изменить", color = PinkMain)
                     }
                 },
