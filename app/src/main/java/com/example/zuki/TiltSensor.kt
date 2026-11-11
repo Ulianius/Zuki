@@ -27,7 +27,6 @@ fun rememberTiltSensor(): Pair<Float, Float> {
         }
 
         sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_GAME)
-
         onDispose {
             sensorManager.unregisterListener(listener)
         }
