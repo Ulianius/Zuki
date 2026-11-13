@@ -12,7 +12,8 @@ enum class BugType(
 ) {
     NORMAL(R.drawable.tarakan, splashRes = R.drawable.smert, points = 10, speedMul = 1.0f, baseSize = 0.18f, chance    = 0.50f),
     FAST  (R.drawable.tarakan_fast,  splashRes = R.drawable.smert_fast,  points = 30, speedMul = 2.8f, baseSize = 0.20f, chance    = 0.35f),
-    RARE (iconRes = R.drawable.tarakan_rare, splashRes = R.drawable.smert_rare,points    = 100, speedMul  = 1.0f, baseSize  = 0.22f,chance    = 0.15f  )
+    RARE (iconRes = R.drawable.tarakan_rare, splashRes = R.drawable.smert_rare,points    = 100, speedMul  = 1.0f, baseSize  = 0.22f,chance    = 0.15f  ),
+    GOLD(iconRes = R.drawable.tarakan_gold, splashRes = R.drawable.smert_gold ,points    = 0, speedMul  = 2.5f, baseSize  = 0.25f,chance    = 0f )
 }
 data class Bug(
     val id: Long,
@@ -21,9 +22,11 @@ data class Bug(
     val y: Float,
     val vx: Float,
     val vy: Float,
-    val size: Float
+    val size: Float,
+    val isGold: Boolean = false,
+    val goldPoints: Int = 0
 
-){
+    ){
     val points: Int get() = type.points
     val iconRes: Int get() = type.iconRes
     val splashRes: Int get() = type.splashRes
@@ -63,6 +66,30 @@ object BugFactory {
         )
 
     }
+    fun spawnGold(goldRate: Double): Bug {
+        val angle = Random.nextFloat() * 2f * Math.PI.toFloat()
+        val baseSpeed = 0.15f
+
+        val points = goldRate.toInt()/10
+
+        val type = BugType.GOLD
+        val size = type.baseSize
+        val halfSize = size / 2f
+        val minPos = halfSize
+        val maxPos = 1f - halfSize
+
+        return Bug(
+            id = nextId++,
+            type = type,
+            x = Random.nextFloat() * (maxPos - minPos) + minPos,
+            y = Random.nextFloat() * (maxPos - minPos) + minPos,
+            vx = kotlin.math.cos(angle) * baseSpeed * type.speedMul,
+            vy = kotlin.math.sin(angle) * baseSpeed * type.speedMul,
+            size = size,
+            isGold = true,
+            goldPoints = points
+        )
+    }
     private fun pickType(): BugType {
         val r = Random.nextFloat()
         var acc = 0f
@@ -72,4 +99,5 @@ object BugFactory {
         }
         return BugType.NORMAL
     }
+
 }

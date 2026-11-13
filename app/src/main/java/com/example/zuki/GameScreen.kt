@@ -68,6 +68,11 @@ fun GameScreen(
     val currentTiltX by rememberUpdatedState(tiltX)
     val currentTiltY by rememberUpdatedState(tiltY)
 
+    var goldRate by remember { mutableDoubleStateOf(0.0) }
+    LaunchedEffect(Unit) {
+        goldRate = CbrClient.fetchGoldRate()
+    }
+
     // Освобождение звука при выходе с экрана
     DisposableEffect(Unit) {
         onDispose {
@@ -75,7 +80,6 @@ fun GameScreen(
         }
     }
 
-    // ---------- ИТОГОВЫЙ ЭКРАН ----------
     if (finished) {
         val accuracy = if (hits + misses == 0) 0
         else (hits.toFloat() / (hits + misses) * 100).roundToInt()
@@ -304,6 +308,7 @@ fun GameScreen(
                         var spawnAcc = 0L
                         val spawnInterval = 1000L
                         var bonusSpawnAcc = 0L
+                        var goldSpawnAcc = 0L
 
                         while (timeLeftMs > 0) {
                             delay(frame)
@@ -315,7 +320,7 @@ fun GameScreen(
 
                                 if (isGravityActive) {
                                     val forceX = (-currentTiltX / 10f) * 0.01f
-                                    val forceY = (-currentTiltY / 10f) * 0.01f
+                                    val forceY = (currentTiltY / 10f) * 0.01f
 
 
                                     var newX = b.x + forceX
@@ -356,7 +361,11 @@ fun GameScreen(
                                 bugs.add(BugFactory.spawn(settings.speedFactor, fastChance = 0.2f))
                                 spawnAcc = 0L
                             }
-
+                            goldSpawnAcc += frame
+                            if (goldSpawnAcc >= 20000L && bugs.none { it.isGold }) {
+                                bugs.add(BugFactory.spawnGold(goldRate))
+                                goldSpawnAcc = 0L
+                            }
                             // Спавн бонусов
                             bonusSpawnAcc += frame
                             if (bonusSpawnAcc >= settings.bonusIntervalMs && bonuses.size < 2) {
@@ -394,10 +403,10 @@ fun GameScreen(
                         }
                     }
 
-                    // ★ ТАЙМЕР ВЫКЛЮЧЕНИЯ ГРАВИТАЦИИ ★
+                    // выключение Отравы
                     LaunchedEffect(isGravityActive) {
                         if (isGravityActive) {
-                            kotlinx.coroutines.delay(5000L) // 5 секунд
+                            delay(5000L) // 5 секунд
                             isGravityActive = false
                             mediaPlayer?.pause()
                             mediaPlayer?.seekTo(0)
@@ -490,7 +499,11 @@ fun GameScreen(
                                 .size(sizeDp)
                                 .pointerInput(bug.id) {
                                     detectTapGestures(onTap = {
-                                        score += bug.points
+                                        if (bug.isGold) {
+                                            score += bug.goldPoints
+                                        } else {
+                                            score += bug.points
+                                        }
                                         hits++
                                         splashes.add(
                                             Splash(
