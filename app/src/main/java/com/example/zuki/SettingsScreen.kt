@@ -130,7 +130,7 @@ fun SettingsScreen(settings: GameSettings,
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Чем сложнее настройки, тем больше очков вы получите в рекордах!",
+                        text = "Чем сложнее настройки, тем больше очков вы получите и будете выше всех в рейтинге",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray,
                         textAlign = TextAlign.Center

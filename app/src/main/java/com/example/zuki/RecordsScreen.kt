@@ -65,7 +65,6 @@ fun RecordsScreen(dao: AppDao) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Левая часть: Место и Имя
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = "${index + 1}.",
@@ -105,7 +104,6 @@ fun RecordsScreen(dao: AppDao) {
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    // Плашка со сложностью
                                     Surface(
                                         color = PinkMain.copy(alpha = 0.15f),
                                         shape = RoundedCornerShape(8.dp)

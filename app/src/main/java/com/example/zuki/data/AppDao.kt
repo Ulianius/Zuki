@@ -13,16 +13,8 @@ data class TopScore(
 interface AppDao {
     @Insert
     suspend fun insertPlayer(player: PlayerEntity): Long
-
-    @Query("SELECT * FROM players ORDER BY createdAt DESC LIMIT 1")
-    suspend fun getLastPlayer(): PlayerEntity?
-
     @Insert
     suspend fun insertResult(result: GameResultEntity): Long
-
-    @Query("SELECT * FROM game_results ORDER BY playedAt DESC")
-    suspend fun getAllResults(): List<GameResultEntity>
-
     @Query("SELECT * FROM players ORDER BY createdAt DESC")
     suspend fun getAllPlayers(): List<PlayerEntity>
 
@@ -35,7 +27,7 @@ interface AppDao {
         SELECT p.fullName AS playerName, r.score AS score, r.difficultyMultiplier AS difficultyMultiplier 
         FROM game_results r 
         INNER JOIN players p ON r.playerId = p.id 
-        ORDER BY r.score DESC 
+        ORDER BY r.score DESC, r.difficultyMultiplier DESC 
         LIMIT 10
     """)
     suspend fun getTopScores(): List<TopScore>
